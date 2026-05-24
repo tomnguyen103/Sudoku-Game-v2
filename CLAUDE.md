@@ -54,6 +54,18 @@ npm run test:smoke
 
 Before deploying, follow [`docs/release-checklist.md`](docs/release-checklist.md).
 
+## Pre-Push Checklist (required before every `git push`)
+
+1. **Update `implementation-notes.md`** — Log any decision, tradeoff, workaround, or change that wasn't in the original spec. Include: what changed, why, and what the tradeoff was. Use the existing section structure (date heading + bullet decisions).
+
+2. **Update `CLAUDE.md`** — If anything in this file is now stale or missing (new files added, key decisions changed, workflow steps added), update it before pushing. This file is the source of truth for future sessions.
+
+3. **Bump SW cache** — If any file listed in `sw.js` ASSETS was modified, increment the `CACHE` version string (e.g. `sudoku-v14` → `sudoku-v15`) and update the matching `?v=` query strings in `index.html`.
+
+4. **Run tests** — `npm test && npm run test:smoke` must pass before pushing.
+
+These steps must happen in this order: update docs → bump cache if needed → run tests → push.
+
 ## Deployment
 
 Connect the GitHub repo to Netlify. No build output directory is needed; Netlify serves `index.html` from the repository root.

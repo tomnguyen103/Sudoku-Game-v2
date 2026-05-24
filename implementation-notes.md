@@ -194,3 +194,37 @@ The trace function copies the input board before solving so it does not mutate t
 **Deferred:** DLX, Simulated Annealing, Genetic — not suitable for step-by-step visualization.
 
 **Layout decision:** Option B (dropdown selector) chosen for the algorithm control UI. Algorithm dropdown made visually prominent with a violet accent to draw user focus. "New Test" button renamed to "New Puzzle".
+
+---
+
+## Control Panel Redesign
+
+### 2026-05-24 — Algorithm selector panel and stat counters
+
+**Context:** User wanted a "professor layout" — clean, extensible sidebar that can accommodate a second algorithm later. Also wanted to replace the opaque Step counter with something more user-readable.
+
+**Decision — Algorithm dropdown:** Replaced the single Run button with a `<select>` dropdown (`x-model="selectedAlgorithm"`) wrapped in a visually distinct `algo-ring` panel (violet border + glow). Currently one option (`backtracking`). Adding a second algorithm only requires a new `<option>` tag and a branch in the run logic. Speed controls moved inside the algorithm panel (below Run) so they read as one cohesive group.
+
+**Decision — Placed / Backtracks counters:** Replaced `Step: X / Y` with two colored stat boxes — blue for Placed, red for Backtracks. `placedCount` increments on every `place` step, `backtrackedCount` on every `backtrack` step. User found the step counter confusing because it mixes both directions into one number with no visual distinction.
+
+**Decision — Status badge:** Status panel header shows a small algorithm badge chip on the right side (`algorithmBadgeLabel()` method). Updates reactively when the dropdown changes. Chosen over embedding the name in the panel label (Option B) because it keeps "Status" as a stable label while still attributing the numbers to the selected algorithm.
+
+**Tradeoff — Grid cell colors left unchanged:** User explicitly asked not to color-code placed/backtracked cells in the grid. Only the sidebar stat boxes use blue/red tint. The grid coloring (amber for current, red-tinted for backtracking) stays as-is.
+
+**Decision — `newTest` renamed to `newPuzzle`:** More natural language. Updated everywhere: JS method, HTML button, smoke test selectors.
+
+### 2026-05-24 — Git branch cleanup and deploy fix
+
+**Issue:** Development happened on `main`. The `finishing-a-development-branch` skill incorrectly identified `master` as the base branch (IDE reported it as "Main branch"). I created and pushed a new `master` branch to GitHub, which Netlify ignored (it watches `main`).
+
+**Fix:** Fast-forwarded `main` to include all commits, pushed to `origin/main`, then deleted both local and remote `master`. Netlify deploy triggered correctly after that.
+
+**Decision — favicon.svg was never committed:** The file existed locally (untracked) but was never added to git, so Netlify never had it. Added it in a separate commit. Going forward, new assets must be committed before pushing.
+
+### 2026-05-24 — Service worker auto-reload
+
+**Issue:** After a Netlify deploy, users had to hard-refresh to see updates. The SW used `skipWaiting()` + `clients.claim()` correctly, but `clients.claim()` only makes the new SW *control* the tab — it doesn't reload the page to pick up new HTML/CSS/JS.
+
+**Fix:** Added `navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload())` in `index.html`. When `skipWaiting()` causes the new SW to take over, `controllerchange` fires and the page reloads automatically. No user action needed on future deploys.
+
+**Tradeoff:** The page reloads once per SW update. This is acceptable because SW updates only happen when `sw.js` content changes (i.e. on each deploy). Users mid-session will lose their current run state, but that's preferable to silently serving stale assets.
