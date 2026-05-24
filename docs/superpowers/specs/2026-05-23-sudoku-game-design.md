@@ -8,7 +8,7 @@
 
 ## Overview
 
-Transform the existing Python backtracking solver (`sudoku_solver.py`) into a fully playable browser-based Sudoku game. The solver logic is ported 1:1 to JavaScript. No backend, no build step — three static files deployed to Netlify.
+Transform the existing Python backtracking solver (`sudoku_solver.py`) into a fully playable browser-based Sudoku game. The solver logic is ported 1:1 to JavaScript. No backend, no build step — static files deployed to Netlify. Ships as a Progressive Web App (PWA) so players can install it on mobile from the browser and play offline.
 
 ---
 
@@ -20,6 +20,7 @@ Transform the existing Python backtracking solver (`sudoku_solver.py`) into a fu
 | Reactivity | Alpine.js via CDN | Reactive state without a framework or npm; two CDN script tags in `index.html` |
 | Game logic | Vanilla JS (`game.js`) | No DOM access, no Alpine dependency — pure functions only |
 | Deploy | Netlify static | Drag-and-drop or GitHub auto-deploy |
+| PWA | manifest.json + service worker | Installable on iOS/Android, offline play |
 
 ---
 
@@ -27,9 +28,14 @@ Transform the existing Python backtracking solver (`sudoku_solver.py`) into a fu
 
 ```
 sudoku_solver_v2/
-├── index.html          ← markup, Alpine root, CDN imports
+├── index.html          ← markup, Alpine root, CDN imports, PWA meta tags
 ├── style.css           ← only custom CSS Tailwind cannot express (3×3 grid box borders)
 ├── game.js             ← solver, generator, uniqueness check — pure functions, no DOM
+├── manifest.json       ← PWA manifest (name, icons, theme colour, display: standalone)
+├── sw.js               ← service worker — caches all static assets for offline play
+├── icons/
+│   ├── icon-192.png    ← PWA icon (192×192)
+│   └── icon-512.png    ← PWA icon (512×512)
 ├── implementation-notes.md
 └── docs/
     └── superpowers/
@@ -56,7 +62,13 @@ All reactive state is declared in `sudokuGame()` and bound to `<body x-data="sud
   paused: false,    // timer paused state
   difficulty: 'medium', // 'easy' | 'medium' | 'hard' | 'expert'
   darkMode: false,  // persisted in localStorage under key 'sudoku-dark'
-  status: 'playing' // 'playing' | 'won' | 'gameover'
+  status: 'playing', // 'playing' | 'won' | 'gameover'
+  bestTimes: {      // persisted in localStorage under key 'sudoku-best'
+    easy: null,     // seconds (integer) | null = never completed
+    medium: null,
+    hard: null,
+    expert: null
+  }
 }
 ```
 
@@ -108,10 +120,11 @@ Desktop-first layout. On narrow screens (< 640px), sidebar collapses below the g
 │  SUDOKU                              ☀ / 🌙     │  ← header
 ├──────────────────────────┬──────────────────────┤
 │                          │  Timer   00:00  ⏸    │
-│    9 × 9 Grid            │  Difficulty pills     │
-│                          │  Errors  ✕ 0 / 3     │
-│  (large, takes ~65%      │  ─────────────────   │
-│   of horizontal space)   │  1  2  3             │
+│    9 × 9 Grid            │  Best    03:47        │  ← hidden if no best yet
+│                          │  Difficulty pills     │
+│  (large, takes ~65%      │  Errors  ✕ 0 / 3     │
+│   of horizontal space)   │  ─────────────────   │
+│                          │  1  2  3             │
 │                          │  4  5  6   (numpad)  │
 │                          │  7  8  9             │
 │                          │        ⌫  Erase      │
@@ -170,6 +183,12 @@ Sun/moon icon in the header. Clicking toggles `darkMode`, writes to `localStorag
 ### Number pad
 Clicking a number button (1–9) fills the selected cell. Erase button clears it. Equivalent to keyboard input.
 
+### Personal best score tracking
+Best completion time per difficulty is stored in `localStorage` under key `'sudoku-best'` as `{ easy, medium, hard, expert }` (seconds or `null`). On win, if `timer < bestTimes[difficulty]` (or best is null), the value is updated. The sidebar shows "Best: MM:SS" below the timer — hidden entirely when no best exists for the current difficulty. Switching difficulty updates the displayed best immediately.
+
+### Progressive Web App (PWA)
+`manifest.json` declares the app name ("Sudoku"), theme colour, background colour, and `display: standalone` so it fills the screen without browser chrome when installed. `sw.js` uses a cache-first strategy — on first load it pre-caches `index.html`, `style.css`, `game.js`, and the two icons; subsequent loads are served from cache, enabling offline play. `index.html` registers the service worker and includes the required `<link rel="manifest">` and Apple-specific meta tags for iOS install support.
+
 ---
 
 ## Win / Game Over States
@@ -182,10 +201,11 @@ Clicking a number button (1–9) fills the selected cell. Erase button clears it
 
 ## Deployment
 
-1. Three files committed to Git: `index.html`, `style.css`, `game.js`
+1. Commit all files to Git: `index.html`, `style.css`, `game.js`, `manifest.json`, `sw.js`, `icons/`
 2. Connect repo to Netlify (GitHub auto-deploy)
 3. No build command, no publish directory configuration needed — Netlify serves `index.html` from root
-4. Add `.superpowers/` to `.gitignore`
+4. HTTPS is required for service workers — Netlify provides this automatically on all deploys
+5. Add `.superpowers/` to `.gitignore`
 
 ---
 
@@ -193,6 +213,6 @@ Clicking a number button (1–9) fills the selected cell. Erase button clears it
 
 - Hint system (reveal one correct cell)
 - Note/pencil mode (small candidate numbers per cell)
-- Score tracking / leaderboard
-- Mobile-native app
+- Global leaderboard (would require a backend/database)
+- True native app (React Native / Flutter — separate project)
 - Python backend

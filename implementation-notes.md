@@ -44,4 +44,12 @@ Running log of decisions, tradeoffs, and changes made during design and implemen
 
 ---
 
+**Decision — PWA:** Progressive Web App via `manifest.json` + `sw.js`. Chosen over true native (React Native/Flutter) to stay within the static Netlify deploy model. Adds two files + an icons folder. Service worker uses cache-first strategy — pre-caches all static assets on first install. HTTPS is required for service workers; Netlify provides this on all deployments automatically.
+
+**Decision — Score tracking:** Personal best times per difficulty stored in `localStorage` key `'sudoku-best'`. No backend, no accounts. Global leaderboard was considered and rejected — would require a database (Supabase/Firebase) and add significant complexity. Can be added in v2 if needed.
+
+**Note — PWA icons:** The spec calls for `icons/icon-192.png` and `icons/icon-512.png`. These need to be created (simple Sudoku grid logo or text-based icon). No design tool specified — a programmatically generated SVG converted to PNG is the simplest approach.
+
+---
+
 *More notes will be added as design decisions are made.*

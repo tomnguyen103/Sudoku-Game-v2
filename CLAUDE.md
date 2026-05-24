@@ -15,10 +15,13 @@ No npm, no build step. Three files: `index.html`, `style.css`, `game.js`.
 ## File structure
 
 ```
-index.html    ← markup + Alpine x-data root + CDN script tags
-style.css     ← only custom CSS Tailwind can't handle (3×3 grid box borders)
-game.js       ← pure functions: generateSolution, shuffleBoard, removeClues,
-                 solvePuzzle, countSolutions — no DOM, no Alpine dependency
+index.html      ← markup + Alpine x-data root + CDN script tags + PWA meta tags
+style.css       ← only custom CSS Tailwind can't handle (3×3 grid box borders)
+game.js         ← pure functions: generateSolution, shuffleBoard, removeClues,
+                   solvePuzzle, countSolutions — no DOM, no Alpine dependency
+manifest.json   ← PWA manifest (name, icons, theme colour, standalone display)
+sw.js           ← service worker — cache-first strategy for offline play
+icons/          ← PWA icons: icon-192.png, icon-512.png
 ```
 
 ## Key design decisions
@@ -28,6 +31,8 @@ game.js       ← pure functions: generateSolution, shuffleBoard, removeClues,
 - **Uniqueness guarantee:** every generated puzzle is verified to have exactly one solution via `countSolutions(board, 2)` during generation
 - **Difficulty = empty cells:** Easy 36 / Medium 46 / Hard 52 / Expert 57
 - **Dark mode** toggled via `dark` class on `<html>` + Tailwind `darkMode: 'class'` config, persisted in `localStorage`
+- **Personal best** stored in `localStorage` key `'sudoku-best'` as `{ easy, medium, hard, expert }` (seconds or `null`); updated on win if new time beats stored best
+- **PWA** — `manifest.json` + `sw.js` (cache-first, pre-caches all static assets); HTTPS required — Netlify provides this automatically
 - **Coordinate convention:** `row` (0–8 top→bottom) and `col` (0–8 left→right) throughout — the original Python code had this inverted (x=row, y=col) and it is fixed in the JS port
 
 ## Deployment
