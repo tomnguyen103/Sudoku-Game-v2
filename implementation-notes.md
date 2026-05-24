@@ -233,7 +233,7 @@ The trace function copies the input board before solving so it does not mutate t
 
 **Decision - Elapsed time tracking:** Added `_runStartTime` and `_elapsedMs` to the visualizer state. `_runStartTime` is set when `runSolver()` starts and cleared on reset/new puzzle. `_elapsedMs` tracks elapsed milliseconds and pauses when the solver is paused (frozen at the pause time, resumes from that point when `runSolver()` is called again).
 
-**Decision - Display helper:** Added `elapsedText()` method that formats elapsed milliseconds as `"X.XXs"` (e.g., `"1.234s"`). Returns `"0.000s"` when no solver run is active. Readable and consistent with the rest of the UI.
+**Decision - Display helper:** Added `elapsedText()` method that formats elapsed milliseconds as `"X.XXs"` (e.g., `"1.23s"`). Returns `"0.00s"` when no solver run is active. Readable and consistent with the rest of the UI.
 
 **Decision - Stat tile styling:** Added `.stat-time` CSS class with amber background (`#fef3c7` light, `#3b2500` dark) and amber text colors to distinguish the timing stat from the blue (Placed) and red (Backtracks) tiles. Matches the existing `.stat-place` and `.stat-back` structure.
 
