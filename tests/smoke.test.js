@@ -93,11 +93,27 @@ async function main() {
       );
 
       await page.getByRole('button', { name: 'Run Algorithm' }).click();
+      await page.waitForFunction(() => {
+        const value = document.querySelector('.stat-time .stat-value')?.textContent || '0s';
+        return Number.parseFloat(value) > 0;
+      });
       await page.locator('p').filter({ hasText: /Trying \d at row|Backtracking from row/ }).waitFor();
       await page.getByRole('button', { name: 'Pause' }).click();
       await page.getByText('Solver paused.').waitFor();
+      const pausedSolvingTime = await page.locator('.stat-time .stat-value').textContent();
+      await page.waitForTimeout(200);
+      assert.strictEqual(
+        await page.locator('.stat-time .stat-value').textContent(),
+        pausedSolvingTime,
+        'Solving Time freezes while paused'
+      );
       await page.getByRole('button', { name: 'Finish Now' }).click();
       await page.getByText('Solved by Backtracking DFS.').waitFor();
+      const finishedSolvingTime = await page.locator('.stat-time .stat-value').textContent();
+      assert.ok(
+        Number.parseFloat(finishedSolvingTime) > Number.parseFloat(pausedSolvingTime),
+        'Finish Now projects Solving Time to selected-speed completion'
+      );
 
       const filledCells = await page.locator('.sudoku-cell').evaluateAll(cells =>
         cells.filter(cell => cell.textContent.trim()).length

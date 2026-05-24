@@ -34,9 +34,10 @@ docs/release-checklist.md <- release checklist
 ## Key Decisions
 
 - **App mode:** pure solver visualizer. Manual Sudoku play, mistakes, undo, erase, timer, personal bests, and win/game-over overlays are intentionally removed.
-- **Current layout:** Easy / Medium / Hard load a generated test puzzle via `generateTestPuzzle(difficulty)`. The current layout stays fixed until difficulty changes or the user clicks `New Test`.
-- **Visualizer start:** layout generation happens before display, but the algorithm does not animate until `Run Backtracking Algorithm`.
-- **Finish Now:** solves the current layout immediately, fills all cells, advances the step count to the end of the computed trace, and marks the state as `solved`.
+- **Current layout:** Easy / Medium / Hard load a generated test puzzle via `generateTestPuzzle(difficulty)`. The current layout stays fixed until difficulty changes or the user clicks `New Puzzle`.
+- **Visualizer start:** layout generation happens before display, but the algorithm does not animate until `Run Algorithm`.
+- **Solving Time:** counts only algorithm playback time. It starts when `Run Algorithm` is clicked, pauses when `Pause` is clicked, resumes on continue, and stops once the puzzle is solved.
+- **Finish Now:** skips the remaining user wait time while preserving selected-speed algorithm time. It solves the current layout, adds the remaining trace duration using the selected playback speed, fills all cells, advances the step count to the end of the computed trace, and marks the state as `solved`.
 - **Solvability preflight:** generated layouts are validated with `isSolvableLayout(board)` and uniqueness is checked with `countSolutions(board, 2)`.
 - **Difficulty = empty cells:** Easy 36 / Medium 46 / Hard 52.
 - **Dark mode:** toggled with the `dark` class on `<html>`, persisted in `localStorage`.

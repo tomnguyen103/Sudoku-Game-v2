@@ -232,19 +232,54 @@ newTimeGame.newPuzzle();
 assert.strictEqual(newTimeGame._elapsedMs, 0, 'newPuzzle: clears _elapsedMs');
 assert.strictEqual(newTimeGame._runStartTime, null, 'newPuzzle: clears _runStartTime');
 
-// finishNow flushes active segment
+// finishNow skips waiting but records selected-speed completion time
 const finishTimeGame = sudokuGame();
 finishTimeGame.initialBoard = unsolved.map(row => [...row]);
 finishTimeGame.board = unsolved.map(row => [...row]);
 finishTimeGame.locked = Array.from({ length: 9 }, () => Array(9).fill(false));
+finishTimeGame.status = 'running';
+finishTimeGame.speed = '10x';
+finishTimeGame.steps = createBacktrackingTrace(unsolved).steps;
+finishTimeGame.stepIndex = 5;
 finishTimeGame._runStartTime = 3000;
 finishTimeGame._elapsedMs = 1000;
 const origNow2 = Date.now;
 Date.now = () => 4000;
 finishTimeGame.finishNow();
 Date.now = origNow2;
-assert.strictEqual(finishTimeGame._elapsedMs, 2000, 'finishNow: flushes active segment into _elapsedMs');
+assert.strictEqual(
+  finishTimeGame._elapsedMs,
+  2000 + (finishTimeGame.steps.length - 5) * PLAYBACK_SPEEDS['10x'],
+  'finishNow: adds remaining selected-speed trace time'
+);
 assert.strictEqual(finishTimeGame._runStartTime, null, 'finishNow: clears _runStartTime');
+
+// final trace step completes solving time immediately
+const finalStepTimeGame = sudokuGame();
+finalStepTimeGame.board = tracePuzzle.map(row => [...row]);
+finalStepTimeGame.solvedBoard = [
+  [1,2,3,4,5,6,7,8,9],
+  [4,5,6,7,8,9,1,2,3],
+  [7,8,9,1,2,3,4,5,6],
+  [2,3,4,5,6,7,8,9,1],
+  [5,6,7,8,9,1,2,3,4],
+  [8,9,1,2,3,4,5,6,7],
+  [3,4,5,6,7,8,9,1,2],
+  [6,7,8,9,1,2,3,4,5],
+  [9,1,2,3,4,5,6,7,8],
+];
+finalStepTimeGame.steps = [{ type: 'place', row: 0, col: 8, value: 9 }];
+finalStepTimeGame.status = 'running';
+finalStepTimeGame._runStartTime = 1000;
+finalStepTimeGame._interval = setInterval(() => {}, 1000);
+const origNow4 = Date.now;
+Date.now = () => 1250;
+finalStepTimeGame._applyNextStep();
+Date.now = origNow4;
+assert.strictEqual(finalStepTimeGame.status, 'solved', '_applyNextStep: final step marks solved immediately');
+assert.strictEqual(finalStepTimeGame._interval, null, '_applyNextStep: final step stops playback');
+assert.strictEqual(finalStepTimeGame._elapsedMs, 250, '_applyNextStep: final step captures solve time');
+assert.strictEqual(finalStepTimeGame._runStartTime, null, '_applyNextStep: final step clears _runStartTime');
 
 // runSolver sets _runStartTime
 const runTimeGame = sudokuGame();

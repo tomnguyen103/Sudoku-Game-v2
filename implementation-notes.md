@@ -240,3 +240,15 @@ The trace function copies the input board before solving so it does not mutate t
 **UI placement:** Inserted the `⏱ Solving Time` stat tile between the 2-column grid (Placed + Backtracks) and the status text paragraph in the status widget section. Tile shows full width with `mt-2` spacing.
 
 **Cache update:** Bumped service worker cache from `sudoku-v16` to `sudoku-v17`. Updated all 6 query strings in `index.html` from `?v=20260524-ctrlpanel` to `?v=20260524-solvetime` (tailwindcss.js, alpine.min.js, style.css, solver.js, generator.js, visualizer.js).
+
+### 2026-05-24 — Finish Now solving-time semantics
+
+**Issue observed:** `Finish Now` originally stopped playback and displayed the elapsed time at the user's click moment. That did not match the intended behavior: the button should skip user waiting while preserving the algorithm's selected-speed solve duration.
+
+**Decision - Projected completion time:** `finishNow()` now records the active elapsed segment, computes the remaining trace length from the current `stepIndex`, multiplies it by the current `playbackDelay()`, and adds that projected duration before marking the puzzle solved. This means the displayed Solving Time represents when the selected-speed visualizer would have finished if it had continued running normally.
+
+**Decision - Final-step completion:** `_applyNextStep()` now completes the solve immediately when it applies the last trace step. Previously the board could be fully solved while the timer continued until the next interval tick.
+
+**Testing added:** `tests/game.test.js` now verifies that `Finish Now` adds remaining selected-speed trace time and that the final trace step stops the timer immediately. `tests/smoke.test.js` verifies the visible Solving Time advances while running, freezes while paused, and jumps forward when `Finish Now` projects to completion.
+
+**Cache update:** Bumped service worker cache from `sudoku-v17` to `sudoku-v18`. Updated all 6 runtime query strings in `index.html` from `?v=20260524-solvetime` to `?v=20260524-finishtime`.
