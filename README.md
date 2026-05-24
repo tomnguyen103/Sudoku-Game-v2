@@ -6,7 +6,7 @@ This project is a static web app deployed from the repository root. It has no ba
 
 ## Live Project
 
-[Open the live Sudoku Solver Visualizer](https://sudoku.tomnguyen.me/)
+<a href="https://sudoku.tomnguyen.me/" target="_blank" rel="noopener noreferrer">Open the live Sudoku Solver Visualizer</a>
 
 ## Project Image
 
