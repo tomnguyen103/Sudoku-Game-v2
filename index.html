@@ -10,7 +10,12 @@
   <link rel="stylesheet" href="style.css">
   <script src="game.js"></script>
 </head>
-<body class="min-h-screen bg-gray-50 dark:bg-slate-900 transition-colors duration-200">
-  <p class="text-center text-2xl font-bold mt-10 dark:text-white">Sudoku scaffold — loading OK</p>
+<body
+  class="min-h-screen bg-gray-50 dark:bg-slate-900 transition-colors duration-200"
+  x-data="sudokuGame()"
+  x-init="init()"
+  @keydown.window="handleKey($event)"
+>
+  <p class="text-center mt-10 dark:text-white" x-text="`Status: ${status} | Difficulty: ${difficulty} | Timer: ${formatTime(timer)}`"></p>
 </body>
 </html>
