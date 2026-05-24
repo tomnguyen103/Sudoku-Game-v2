@@ -44,3 +44,32 @@ const emptyTest = emptyBoard.map(r => [...r]);
 assert.strictEqual(countSolutions(emptyTest, 2), 2, 'empty board has more than 1 solution (capped at 2)');
 
 console.log('All solver tests passed.');
+
+const { generateSolution, shuffleBoard, removeClues } = require('../game.js');
+
+// generateSolution
+const sol = generateSolution();
+assert.strictEqual(sol.length, 9, 'solution has 9 rows');
+assert.strictEqual(sol[0].length, 9, 'each row has 9 cols');
+// verify every row/col contains 1-9
+for (let i = 0; i < 9; i++) {
+  const row = new Set(sol[i]);
+  assert.strictEqual(row.size, 9, `row ${i} has 9 unique values`);
+  const col = new Set(sol.map(r => r[i]));
+  assert.strictEqual(col.size, 9, `col ${i} has 9 unique values`);
+}
+
+// shuffleBoard produces a valid board
+const shuffled = shuffleBoard(sol);
+for (let i = 0; i < 9; i++) {
+  const row = new Set(shuffled[i]);
+  assert.strictEqual(row.size, 9, `shuffled row ${i} has 9 unique values`);
+}
+
+// removeClues returns correct structure and unique solution
+const { board: puzzle, locked } = removeClues(shuffled, 'easy');
+const emptyCells = puzzle.flat().filter(v => v === 0).length;
+assert.ok(emptyCells >= 30 && emptyCells <= 40, `easy has ~36 empty cells, got ${emptyCells}`);
+assert.strictEqual(countSolutions(puzzle.map(r => [...r]), 2), 1, 'generated puzzle has unique solution');
+
+console.log('All generator tests passed.');
