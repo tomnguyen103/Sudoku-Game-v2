@@ -98,7 +98,7 @@
           @click="runSolver()"
           :disabled="status === 'running' || status === 'loading'"
           class="w-full py-3 text-sm font-bold rounded-lg bg-blue-600 text-white hover:bg-blue-500 transition-colors shadow-sm disabled:opacity-60 mb-2"
-        >Run Algorithm</button>
+        x-text="status === 'paused' ? 'Continue' : 'Run Algorithm'"></button>
         <div class="text-xs font-bold uppercase tracking-widest mb-1.5 text-violet-700 dark:text-violet-500">Speed</div>
         <div class="grid grid-cols-4 gap-1.5 mb-3">
           <template x-for="option in ['1x','2x','5x','10x']" :key="option">
