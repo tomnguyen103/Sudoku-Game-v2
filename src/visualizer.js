@@ -186,6 +186,13 @@
         return this.selectedAlgorithm === 'backtracking' ? '⬡ Backtracking' : this.selectedAlgorithm;
       },
 
+      subtitleText() {
+        const labels = {
+          backtracking: 'Backtracking DFS Visualizer',
+        };
+        return labels[this.selectedAlgorithm] || 'Algorithm Visualizer';
+      },
+
       isCurrentCell(row, col) {
         return this.currentStep?.row === row && this.currentStep?.col === col;
       },
