@@ -165,3 +165,32 @@ The trace function copies the input board before solving so it does not mutate t
 **Decision - Release checklist:** Added `docs/release-checklist.md` so cache bumps, tests, smoke checks, and local review are repeatable before deploy.
 
 **Cache update:** Bumped service worker cache to `sudoku-v10` and updated runtime query strings in `index.html`.
+
+---
+
+## Algorithm Research — Multi-Algorithm Visualizer (planned)
+
+### 2026-05-24 — Algorithm comparison for future expansion
+
+**Context:** User wants to add a second algorithm to the visualizer. Research conducted to identify candidates.
+
+**Algorithm comparison:**
+
+| Algorithm | Time Complexity | Deterministic | Visual-friendly | Impl. difficulty |
+|---|---|---|---|---|
+| Backtracking DFS | O(9^m) | Yes | Excellent | Low |
+| MRV Backtracking | O(9^m), far fewer steps in practice | Yes | Excellent | Low |
+| Constraint Propagation (AC-3) | O(n²) per pass | Yes (partial) | Good | Medium |
+| Norvig's CP + Search | Near-linear on easy puzzles | Yes | Good | Medium |
+| Dancing Links (DLX) | Fastest in practice | Yes | Poor | High |
+| Simulated Annealing / Genetic | O(iterations/gen) | No | Poor | High |
+
+*m = number of empty cells (max 81)*
+
+**Decision — Best candidate for next algorithm:** MRV Backtracking (Minimum Remaining Values). Same animation infrastructure as current backtracking, but always picks the cell with fewest legal candidates first. Produces dramatically fewer steps on the same puzzle, making the comparison immediately educational. No new trace format needed.
+
+**Decision — Interesting third algorithm:** Constraint Propagation (AC-3 / Norvig's). Visually distinct — shows domain-shrinking rather than cell-filling. Solves easy/medium puzzles with zero guessing. Needs a fallback to search for hard puzzles.
+
+**Deferred:** DLX, Simulated Annealing, Genetic — not suitable for step-by-step visualization.
+
+**Layout decision:** Option B (dropdown selector) chosen for the algorithm control UI. Algorithm dropdown made visually prominent with a violet accent to draw user focus. "New Test" button renamed to "New Puzzle".
