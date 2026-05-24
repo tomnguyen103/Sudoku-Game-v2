@@ -1,7 +1,10 @@
-const CACHE = 'sudoku-v11';
+// Bump CACHE name on every deploy that changes any asset below.
+// Also bump query strings in index.html script/link tags to match.
+const CACHE = 'sudoku-v13';
 const ASSETS = [
   '/',
   '/index.html',
+  '/favicon.svg',
   '/style.css',
   '/src/solver.js',
   '/src/generator.js',
