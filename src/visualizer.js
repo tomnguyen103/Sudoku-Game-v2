@@ -64,6 +64,8 @@
             this.solvedBoard = null;
             this.placedCount = 0;
             this.backtrackedCount = 0;
+            this._runStartTime = null;
+            this._elapsedMs = 0;
             this.status = 'ready';
           } catch (_) {
             this.status = 'error';
@@ -101,12 +103,17 @@
         }
 
         this.status = 'running';
+        this._runStartTime = Date.now();
         this._interval = setInterval(() => this._applyNextStep(), this.playbackDelay());
       },
 
       pauseSolver() {
         if (this.status !== 'running') return;
         this._stopPlayback();
+        if (this._runStartTime !== null) {
+          this._elapsedMs += Date.now() - this._runStartTime;
+          this._runStartTime = null;
+        }
         this.status = 'paused';
       },
 
@@ -114,6 +121,10 @@
         if (this.status === 'solved') return;
 
         this._stopPlayback();
+        if (this._runStartTime !== null) {
+          this._elapsedMs += Date.now() - this._runStartTime;
+          this._runStartTime = null;
+        }
         const trace = createBacktrackingTrace(this.initialBoard);
         this.steps = trace.steps;
         this.solvedBoard = trace.solvedBoard;
@@ -137,6 +148,8 @@
         this.solvedBoard = null;
         this.placedCount = 0;
         this.backtrackedCount = 0;
+        this._runStartTime = null;
+        this._elapsedMs = 0;
         this.status = 'ready';
       },
 
@@ -217,6 +230,10 @@
       _applyNextStep() {
         if (this.stepIndex >= this.steps.length) {
           this._stopPlayback();
+          if (this._runStartTime !== null) {
+            this._elapsedMs += Date.now() - this._runStartTime;
+            this._runStartTime = null;
+          }
           if (this.solvedBoard) this.board = this.solvedBoard.map(row => [...row]);
           this.status = 'solved';
           return;

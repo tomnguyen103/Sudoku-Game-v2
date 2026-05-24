@@ -202,3 +202,60 @@ etGame._runStartTime = null;
 etGame._elapsedMs = 0;
 
 console.log('All solving-time elapsedText tests passed.');
+
+// solving time — lifecycle hooks
+// pauseSolver flushes elapsed time
+const pauseTimeGame = sudokuGame();
+pauseTimeGame.status = 'running';
+const origNow1 = Date.now;
+Date.now = () => 2500;
+pauseTimeGame._runStartTime = 1000;
+pauseTimeGame._elapsedMs = 0;
+pauseTimeGame.pauseSolver();
+Date.now = origNow1;
+assert.strictEqual(pauseTimeGame._elapsedMs, 1500, 'pauseSolver: flushes ms into _elapsedMs');
+assert.strictEqual(pauseTimeGame._runStartTime, null, 'pauseSolver: clears _runStartTime');
+
+// resetPuzzle clears timing
+const resetTimeGame = sudokuGame();
+resetTimeGame._elapsedMs = 9999;
+resetTimeGame._runStartTime = 12345;
+resetTimeGame.resetPuzzle();
+assert.strictEqual(resetTimeGame._elapsedMs, 0, 'resetPuzzle: clears _elapsedMs');
+assert.strictEqual(resetTimeGame._runStartTime, null, 'resetPuzzle: clears _runStartTime');
+
+// newPuzzle clears timing
+const newTimeGame = sudokuGame();
+newTimeGame._elapsedMs = 4200;
+newTimeGame._runStartTime = 777;
+newTimeGame.newPuzzle();
+assert.strictEqual(newTimeGame._elapsedMs, 0, 'newPuzzle: clears _elapsedMs');
+assert.strictEqual(newTimeGame._runStartTime, null, 'newPuzzle: clears _runStartTime');
+
+// finishNow flushes active segment
+const finishTimeGame = sudokuGame();
+finishTimeGame.initialBoard = unsolved.map(row => [...row]);
+finishTimeGame.board = unsolved.map(row => [...row]);
+finishTimeGame.locked = Array.from({ length: 9 }, () => Array(9).fill(false));
+finishTimeGame._runStartTime = 3000;
+finishTimeGame._elapsedMs = 1000;
+const origNow2 = Date.now;
+Date.now = () => 4000;
+finishTimeGame.finishNow();
+Date.now = origNow2;
+assert.strictEqual(finishTimeGame._elapsedMs, 2000, 'finishNow: flushes active segment into _elapsedMs');
+assert.strictEqual(finishTimeGame._runStartTime, null, 'finishNow: clears _runStartTime');
+
+// runSolver sets _runStartTime
+const runTimeGame = sudokuGame();
+runTimeGame.initialBoard = unsolved.map(row => [...row]);
+runTimeGame.board = unsolved.map(row => [...row]);
+runTimeGame.locked = Array.from({ length: 9 }, () => Array(9).fill(false));
+const origNow3 = Date.now;
+Date.now = () => 8000;
+runTimeGame.runSolver();
+clearInterval(runTimeGame._interval);
+Date.now = origNow3;
+assert.strictEqual(runTimeGame._runStartTime, 8000, 'runSolver: sets _runStartTime to Date.now()');
+
+console.log('All solving-time lifecycle tests passed.');
