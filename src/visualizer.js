@@ -9,11 +9,13 @@
   const { createBacktrackingTrace } = solver;
   const { generateTestPuzzle } = generator;
 
+  // Base step delay: smooth animation at 1x, scales by integer factors
+  const BASE_DELAY_MS = 260;
   const PLAYBACK_SPEEDS = {
-    '1x': 260,
-    '2x': 130,
-    '5x': 52,
-    '10x': 26,
+    '1x': BASE_DELAY_MS,
+    '2x': BASE_DELAY_MS / 2,
+    '5x': BASE_DELAY_MS / 5,
+    '10x': BASE_DELAY_MS / 10,
   };
 
   function sudokuGame() {
@@ -24,36 +26,59 @@
       difficulty: 'medium',
       darkMode: false,
       status: 'ready',
+      errorMessage: '',
       steps: [],
       stepIndex: 0,
       speed: '2x',
       currentStep: null,
       solvedBoard: null,
+      finishFlash: false,
       _interval: null,
+      placedCount: 0,
+      backtrackedCount: 0,
+      selectedAlgorithm: 'backtracking',
 
       init() {
         this.darkMode = localStorage.getItem('sudoku-dark') === 'true';
         document.documentElement.classList.toggle('dark', this.darkMode);
-        this.newTest();
+        this.newPuzzle();
       },
 
-      newTest() {
+      newPuzzle() {
         this._stopPlayback();
-        const { board, locked } = generateTestPuzzle(this.difficulty);
+        this.status = 'loading';
+        this.errorMessage = '';
 
-        this.board = board;
-        this.initialBoard = board.map(row => [...row]);
-        this.locked = locked;
-        this.steps = [];
-        this.stepIndex = 0;
-        this.currentStep = null;
-        this.solvedBoard = null;
-        this.status = 'ready';
+        const run = () => {
+          if (this.status !== 'loading') return;
+          try {
+            const { board, locked } = generateTestPuzzle(this.difficulty);
+            this.board = board;
+            this.initialBoard = board.map(row => [...row]);
+            this.locked = locked;
+            this.steps = [];
+            this.stepIndex = 0;
+            this.currentStep = null;
+            this.solvedBoard = null;
+            this.placedCount = 0;
+            this.backtrackedCount = 0;
+            this.status = 'ready';
+          } catch (_) {
+            this.status = 'error';
+            this.errorMessage = 'Puzzle generation failed. Please try again.';
+          }
+        };
+
+        if (typeof requestAnimationFrame === 'function') {
+          requestAnimationFrame(() => setTimeout(run, 0));
+        } else {
+          run();
+        }
       },
 
       setDifficulty(difficulty) {
         this.difficulty = difficulty;
-        this.newTest();
+        this.newPuzzle();
       },
 
       runSolver() {
@@ -96,6 +121,8 @@
           this.stepIndex = trace.steps.length;
           this.currentStep = null;
           this.status = 'solved';
+          this.finishFlash = true;
+          setTimeout(() => { this.finishFlash = false; }, 600);
         }
       },
 
@@ -106,6 +133,8 @@
         this.stepIndex = 0;
         this.currentStep = null;
         this.solvedBoard = null;
+        this.placedCount = 0;
+        this.backtrackedCount = 0;
         this.status = 'ready';
       },
 
@@ -139,7 +168,9 @@
       },
 
       statusText() {
-        if (this.status === 'ready') return 'Choose a level, then run the backtracking solver.';
+        if (this.status === 'loading') return 'Generating puzzle…';
+        if (this.status === 'error') return this.errorMessage;
+        if (this.status === 'ready') return 'Select an algorithm and run the solver.';
         if (this.status === 'running' && this.currentStep?.type === 'place') {
           return `Trying ${this.currentStep.value} at row ${this.currentStep.row + 1}, column ${this.currentStep.col + 1}.`;
         }
@@ -147,8 +178,12 @@
           return `Backtracking from row ${this.currentStep.row + 1}, column ${this.currentStep.col + 1}.`;
         }
         if (this.status === 'paused') return 'Solver paused.';
-        if (this.status === 'solved') return 'Solved by backtracking.';
+        if (this.status === 'solved') return 'Solved by Backtracking DFS.';
         return 'Preparing solver.';
+      },
+
+      algorithmBadgeLabel() {
+        return this.selectedAlgorithm === 'backtracking' ? '⬡ Backtracking' : this.selectedAlgorithm;
       },
 
       isCurrentCell(row, col) {
@@ -174,6 +209,8 @@
         }
 
         const step = this.steps[this.stepIndex];
+        if (step.type === 'place') this.placedCount++;
+        else this.backtrackedCount++;
         const nextRow = [...this.board[step.row]];
         nextRow[step.col] = step.type === 'place' ? step.value : 0;
         this.board = this.board.map((row, index) => index === step.row ? nextRow : row);
