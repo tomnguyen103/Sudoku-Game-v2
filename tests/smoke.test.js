@@ -67,6 +67,30 @@ async function main() {
       });
 
       await page.getByText('Choose a level, then run the backtracking solver.').waitFor();
+      const initialBackground = await page.locator('body').evaluate(body =>
+        getComputedStyle(body).backgroundColor
+      );
+      await page.getByRole('button', { name: 'Switch to dark mode' }).click();
+      await page.waitForFunction(
+        previous => getComputedStyle(document.body).backgroundColor !== previous,
+        initialBackground
+      );
+      assert.strictEqual(
+        await page.locator('html').evaluate(html => html.classList.contains('dark')),
+        true,
+        'theme toggle adds the dark class'
+      );
+      assert.strictEqual(
+        await page.evaluate(() => localStorage.getItem('sudoku-dark')),
+        'true',
+        'theme toggle persists dark mode'
+      );
+      await page.getByRole('button', { name: 'Switch to light mode' }).click();
+      await page.waitForFunction(
+        previous => getComputedStyle(document.body).backgroundColor === previous,
+        initialBackground
+      );
+
       await page.getByRole('button', { name: 'Run Backtracking Algorithm' }).click();
       await page.locator('p').filter({ hasText: /Trying \d at row|Backtracking from row/ }).waitFor();
       await page.getByRole('button', { name: 'Pause' }).click();
