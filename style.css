@@ -1,1 +1,48 @@
-/* Grid box borders — added in Task 5 */
+.sudoku-grid {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  border: 2px solid #374151;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.sudoku-cell {
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(12px, 2vw, 20px);
+  font-weight: 600;
+  border: 1px solid #d1d5db;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.1s;
+}
+
+/* thick right border after cols 3 and 6 */
+.sudoku-cell:nth-child(9n+3),
+.sudoku-cell:nth-child(9n+6) {
+  border-right: 2px solid #374151;
+}
+
+/* thick bottom border after rows 3 and 6 */
+.sudoku-cell:nth-child(n+19):nth-child(-n+27),
+.sudoku-cell:nth-child(n+46):nth-child(-n+54) {
+  border-bottom: 2px solid #374151;
+}
+
+/* dark mode borders */
+.dark .sudoku-grid {
+  border-color: #64748b;
+}
+.dark .sudoku-cell {
+  border-color: #334155;
+}
+.dark .sudoku-cell:nth-child(9n+3),
+.dark .sudoku-cell:nth-child(9n+6) {
+  border-right-color: #64748b;
+}
+.dark .sudoku-cell:nth-child(n+19):nth-child(-n+27),
+.dark .sudoku-cell:nth-child(n+46):nth-child(-n+54) {
+  border-bottom-color: #64748b;
+}
