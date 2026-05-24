@@ -150,7 +150,13 @@ function sudokuGame() {
       this.darkMode = localStorage.getItem('sudoku-dark') === 'true';
       document.documentElement.classList.toggle('dark', this.darkMode);
       const saved = localStorage.getItem('sudoku-best');
-      if (saved) this.bestTimes = JSON.parse(saved);
+      if (saved) {
+        try {
+          this.bestTimes = JSON.parse(saved);
+        } catch {
+          localStorage.removeItem('sudoku-best');
+        }
+      }
       this.newGame();
     },
 
@@ -180,7 +186,6 @@ function sudokuGame() {
 
     selectCell(row, col) {
       if (this.status !== 'playing') return;
-      if (this.locked[row][col]) { this.selected = { row, col }; return; }
       this.selected = { row, col };
     },
 
