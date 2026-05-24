@@ -228,3 +228,15 @@ The trace function copies the input board before solving so it does not mutate t
 **Fix:** Added `navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload())` in `index.html`. When `skipWaiting()` causes the new SW to take over, `controllerchange` fires and the page reloads automatically. No user action needed on future deploys.
 
 **Tradeoff:** The page reloads once per SW update. This is acceptable because SW updates only happen when `sw.js` content changes (i.e. on each deploy). Users mid-session will lose their current run state, but that's preferable to silently serving stale assets.
+
+### 2026-05-24 — Solving time stat tile and UI polish
+
+**Decision - Elapsed time tracking:** Added `_runStartTime` and `_elapsedMs` to the visualizer state. `_runStartTime` is set when `runSolver()` starts and cleared on reset/new puzzle. `_elapsedMs` tracks elapsed milliseconds and pauses when the solver is paused (frozen at the pause time, resumes from that point when `runSolver()` is called again).
+
+**Decision - Display helper:** Added `elapsedText()` method that formats elapsed milliseconds as `"X.XXs"` (e.g., `"1.234s"`). Returns `"0.000s"` when no solver run is active. Readable and consistent with the rest of the UI.
+
+**Decision - Stat tile styling:** Added `.stat-time` CSS class with amber background (`#fef3c7` light, `#3b2500` dark) and amber text colors to distinguish the timing stat from the blue (Placed) and red (Backtracks) tiles. Matches the existing `.stat-place` and `.stat-back` structure.
+
+**UI placement:** Inserted the `⏱ Solving Time` stat tile between the 2-column grid (Placed + Backtracks) and the status text paragraph in the status widget section. Tile shows full width with `mt-2` spacing.
+
+**Cache update:** Bumped service worker cache from `sudoku-v16` to `sudoku-v17`. Updated all 6 query strings in `index.html` from `?v=20260524-ctrlpanel` to `?v=20260524-solvetime` (tailwindcss.js, alpine.min.js, style.css, solver.js, generator.js, visualizer.js).
