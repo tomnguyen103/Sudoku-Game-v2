@@ -5,7 +5,7 @@ const path = require('path');
 const { chromium } = require('playwright');
 
 const root = path.resolve(__dirname, '..');
-const port = 4183;
+let serverPort = 0;
 
 const contentTypes = {
   '.css': 'text/css',
@@ -16,7 +16,7 @@ const contentTypes = {
 };
 
 function serveFile(req, res) {
-  const url = new URL(req.url, `http://127.0.0.1:${port}`);
+  const url = new URL(req.url, `http://127.0.0.1:${serverPort}`);
   const pathname = url.pathname === '/' ? '/index.html' : url.pathname;
   const filePath = path.normalize(path.join(root, pathname));
 
@@ -43,7 +43,8 @@ function serveFile(req, res) {
 
 async function withServer(fn) {
   const server = http.createServer(serveFile);
-  await new Promise(resolve => server.listen(port, '127.0.0.1', resolve));
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  serverPort = server.address().port;
   try {
     await fn();
   } finally {
@@ -62,11 +63,11 @@ async function main() {
     });
 
     try {
-      await page.goto(`http://127.0.0.1:${port}/index.html?smoke=1`, {
+      await page.goto(`http://127.0.0.1:${serverPort}/index.html?smoke=1`, {
         waitUntil: 'networkidle',
       });
 
-      await page.getByText('Choose a level, then run the backtracking solver.').waitFor();
+      await page.getByText('Select an algorithm and run the solver.').waitFor();
       const initialBackground = await page.locator('body').evaluate(body =>
         getComputedStyle(body).backgroundColor
       );
@@ -91,12 +92,12 @@ async function main() {
         initialBackground
       );
 
-      await page.getByRole('button', { name: 'Run Backtracking Algorithm' }).click();
+      await page.getByRole('button', { name: 'Run Algorithm' }).click();
       await page.locator('p').filter({ hasText: /Trying \d at row|Backtracking from row/ }).waitFor();
       await page.getByRole('button', { name: 'Pause' }).click();
       await page.getByText('Solver paused.').waitFor();
       await page.getByRole('button', { name: 'Finish Now' }).click();
-      await page.getByText('Solved by backtracking.').waitFor();
+      await page.getByText('Solved by Backtracking DFS.').waitFor();
 
       const filledCells = await page.locator('.sudoku-cell').evaluateAll(cells =>
         cells.filter(cell => cell.textContent.trim()).length
@@ -104,7 +105,7 @@ async function main() {
       assert.strictEqual(filledCells, 81, 'Finish Now fills every cell');
 
       await page.getByRole('button', { name: 'Reset' }).click();
-      await page.getByText('Choose a level, then run the backtracking solver.').waitFor();
+      await page.getByText('Select an algorithm and run the solver.').waitFor();
       const resetFilledCells = await page.locator('.sudoku-cell').evaluateAll(cells =>
         cells.filter(cell => cell.textContent.trim()).length
       );
