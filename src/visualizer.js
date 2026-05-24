@@ -36,6 +36,8 @@
       _interval: null,
       placedCount: 0,
       backtrackedCount: 0,
+      _runStartTime: null,
+      _elapsedMs: 0,
       selectedAlgorithm: 'backtracking',
 
       init() {
@@ -184,6 +186,11 @@
 
       algorithmBadgeLabel() {
         return this.selectedAlgorithm === 'backtracking' ? '⬡ Backtracking' : this.selectedAlgorithm;
+      },
+
+      elapsedText() {
+        const total = this._elapsedMs + (this._runStartTime ? Date.now() - this._runStartTime : 0);
+        return (total / 1000).toFixed(2) + 's';
       },
 
       subtitleText() {

@@ -184,3 +184,21 @@ assert.ok(emptyCells >= 30 && emptyCells <= 40, `easy has ~36 empty cells, got $
 assert.strictEqual(countSolutions(puzzle.map(r => [...r]), 2), 1, 'generated puzzle has unique solution');
 
 console.log('All generator tests passed.');
+
+// solving time — elapsedText()
+const etGame = sudokuGame();
+assert.strictEqual(etGame.elapsedText(), '0.00s', 'elapsedText: initial value is 0.00s');
+
+etGame._elapsedMs = 3470;
+assert.strictEqual(etGame.elapsedText(), '3.47s', 'elapsedText: reflects accumulated _elapsedMs');
+
+etGame._elapsedMs = 1000;
+const origNow0 = Date.now;
+Date.now = () => 5000;
+etGame._runStartTime = 4000; // 1000ms live segment
+assert.strictEqual(etGame.elapsedText(), '2.00s', 'elapsedText: includes live _runStartTime segment');
+Date.now = origNow0;
+etGame._runStartTime = null;
+etGame._elapsedMs = 0;
+
+console.log('All solving-time elapsedText tests passed.');
