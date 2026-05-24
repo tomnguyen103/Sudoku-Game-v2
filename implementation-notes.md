@@ -252,3 +252,19 @@ The trace function copies the input board before solving so it does not mutate t
 **Testing added:** `tests/game.test.js` now verifies that `Finish Now` adds remaining selected-speed trace time and that the final trace step stops the timer immediately. `tests/smoke.test.js` verifies the visible Solving Time advances while running, freezes while paused, and jumps forward when `Finish Now` projects to completion.
 
 **Cache update:** Bumped service worker cache from `sudoku-v17` to `sudoku-v18`. Updated all 6 runtime query strings in `index.html` from `?v=20260524-solvetime` to `?v=20260524-finishtime`.
+
+### 2026-05-24 - Responsive board and mobile fit
+
+**Issue observed:** The board was visually centered in stacked browser widths while the title started at the page margin, so the puzzle did not vertically align with the title. On mobile, the board plus difficulty, algorithm, and status panels required scrolling.
+
+**Decision - Desktop board sizing:** `style.css` now drives board width through `--sudoku-board-size`. The default remains `31rem`, while the desktop breakpoint grows to `40.375rem` so the square board visually matches the full control/status column height.
+
+**Decision - Stacked alignment:** Changed the main layout from centered content to left-aligned content (`items-start justify-start`). This makes the puzzle, controls, and title share the same left edge in the in-app browser's stacked width.
+
+**Decision - Compact mobile controls:** Added mobile-only styles for `.difficulty-panel`, `.algo-ring`, and `.status-panel`. Difficulty becomes a compact label-plus-buttons row, the algorithm controls use reduced padding/heights, and the status stats compress into a three-column row. The mobile board uses `clamp(12rem, calc(100svh - 29.25rem), calc(100vw - 1rem))` so short phone viewports shrink the board enough to keep the full layout visible.
+
+**Tradeoff:** On shorter phones the puzzle can become much smaller than the available width. This favors the user's requirement that the entire layout be visible on one page over maximizing board size.
+
+**Verification:** Checked responsive dimensions at 390x844, 390x667, and 360x740. Each fit within one viewport with no horizontal overflow. Also checked the in-app browser width, where the title and board both start at the same x-coordinate.
+
+**Cache update:** Bumped service worker cache from `sudoku-v18` to `sudoku-v21`. Updated all 6 runtime query strings in `index.html` from `?v=20260524-finishtime` to `?v=20260524-responsive2`.

@@ -12,15 +12,15 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Sudoku">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <script src="vendor/tailwindcss.js?v=20260524-finishtime"></script>
+  <script src="vendor/tailwindcss.js?v=20260524-responsive2"></script>
   <script>
     tailwind.config = { darkMode: 'class' };
   </script>
-  <script defer src="vendor/alpine.min.js?v=20260524-finishtime"></script>
-  <link rel="stylesheet" href="style.css?v=20260524-finishtime">
-  <script src="src/solver.js?v=20260524-finishtime"></script>
-  <script src="src/generator.js?v=20260524-finishtime"></script>
-  <script src="src/visualizer.js?v=20260524-finishtime"></script>
+  <script defer src="vendor/alpine.min.js?v=20260524-responsive2"></script>
+  <link rel="stylesheet" href="style.css?v=20260524-responsive2">
+  <script src="src/solver.js?v=20260524-responsive2"></script>
+  <script src="src/generator.js?v=20260524-responsive2"></script>
+  <script src="src/visualizer.js?v=20260524-responsive2"></script>
 </head>
 <body
   class="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-200 px-3 py-4 sm:p-5"
@@ -48,8 +48,8 @@
     </button>
   </header>
 
-  <main class="flex flex-col lg:flex-row items-center lg:items-start justify-center gap-5 sm:gap-6 max-w-5xl mx-auto">
-    <div class="sudoku-grid w-full max-w-[31rem]">
+  <main class="flex flex-col lg:flex-row items-start justify-start gap-5 sm:gap-6 max-w-5xl mx-auto">
+    <div class="sudoku-grid w-full max-w-[31rem] lg:max-w-[40.375rem]">
       <template x-for="cell in cells()" :key="cell.key">
         <div
           class="sudoku-cell"
@@ -68,7 +68,7 @@
     </div>
 
     <aside class="w-full max-w-[31rem] lg:w-72 flex flex-col gap-3">
-      <section class="bg-white dark:bg-slate-800 rounded-lg p-3 shadow-sm ring-1 ring-slate-200/70 dark:ring-slate-700/70">
+      <section class="difficulty-panel bg-white dark:bg-slate-800 rounded-lg p-3 shadow-sm ring-1 ring-slate-200/70 dark:ring-slate-700/70">
         <div class="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Difficulty</div>
         <div class="grid grid-cols-3 gap-1.5">
           <template x-for="d in ['easy','medium','hard']" :key="d">
@@ -138,7 +138,7 @@
         </div>
       </section>
 
-      <section class="bg-white dark:bg-slate-800 rounded-lg p-3 shadow-sm ring-1 ring-slate-200/70 dark:ring-slate-700/70">
+      <section class="status-panel bg-white dark:bg-slate-800 rounded-lg p-3 shadow-sm ring-1 ring-slate-200/70 dark:ring-slate-700/70">
         <div class="status-header">
           <div class="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider">Status</div>
           <span class="algo-badge" x-text="algorithmBadgeLabel()"></span>

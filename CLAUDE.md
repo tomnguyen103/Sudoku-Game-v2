@@ -18,7 +18,7 @@ No bundler is required. `package.json` exists for repeatable local checks.
 
 ```text
 index.html              <- markup + Alpine x-data root + local scripts + PWA meta tags
-style.css               <- Sudoku grid borders and fixed board sizing
+style.css               <- Sudoku grid borders, responsive board sizing, and compact mobile controls
 src/solver.js           <- validation, solvePuzzle, countSolutions, createBacktrackingTrace
 src/generator.js        <- generateSolution, shuffleBoard, removeClues, generateTestPuzzle
 src/visualizer.js       <- sudokuGame() Alpine state and playback controls
@@ -35,6 +35,7 @@ docs/release-checklist.md <- release checklist
 
 - **App mode:** pure solver visualizer. Manual Sudoku play, mistakes, undo, erase, timer, personal bests, and win/game-over overlays are intentionally removed.
 - **Current layout:** Easy / Medium / Hard load a generated test puzzle via `generateTestPuzzle(difficulty)`. The current layout stays fixed until difficulty changes or the user clicks `New Puzzle`.
+- **Responsive layout:** The desktop board grows to match the control/status column height. In stacked tablet/browser widths, the board and controls left-align with the title. On mobile, controls compact so the board, control panel, and status notification fit in one viewport on common phone sizes.
 - **Visualizer start:** layout generation happens before display, but the algorithm does not animate until `Run Algorithm`.
 - **Solving Time:** counts only algorithm playback time. It starts when `Run Algorithm` is clicked, pauses when `Pause` is clicked, resumes on continue, and stops once the puzzle is solved.
 - **Finish Now:** skips the remaining user wait time while preserving selected-speed algorithm time. It solves the current layout, adds the remaining trace duration using the selected playback speed, fills all cells, advances the step count to the end of the computed trace, and marks the state as `solved`.

@@ -3,7 +3,8 @@
   grid-template-columns: repeat(9, 1fr);
   grid-template-rows: repeat(9, 1fr);
   gap: 1px;
-  width: min(100%, 31rem);
+  --sudoku-board-size: 31rem;
+  width: min(100%, var(--sudoku-board-size));
   aspect-ratio: 1 / 1;
   box-sizing: border-box;
   background: #d1d5db;
@@ -11,6 +12,12 @@
   border-radius: 6px;
   overflow: hidden;
   box-shadow: 0 16px 40px rgb(15 23 42 / 0.10);
+}
+
+@media (min-width: 1024px) {
+  .sudoku-grid {
+    --sudoku-board-size: 40.375rem;
+  }
 }
 
 .sudoku-cell {
@@ -69,12 +76,6 @@
 .dark .sudoku-cell:nth-of-type(n+19):nth-of-type(-n+27),
 .dark .sudoku-cell:nth-of-type(n+46):nth-of-type(-n+54) {
   border-bottom-color: #64748b;
-}
-
-@media (max-width: 639px) {
-  .sudoku-cell {
-    font-size: 1.125rem;
-  }
 }
 
 button {
@@ -205,3 +206,148 @@ button {
 .dark .stat-time { background: #3b2500; }
 .dark .stat-time .stat-label { color: #fbbf24; }
 .dark .stat-time .stat-value { color: #fde68a; }
+
+@media (max-width: 639px) {
+  body.min-h-screen {
+    padding: 0.5rem !important;
+  }
+
+  body header {
+    margin-bottom: 0.5rem !important;
+  }
+
+  body header h1 {
+    font-size: 1.375rem !important;
+    line-height: 1.1 !important;
+  }
+
+  body header p {
+    font-size: 0.6875rem !important;
+    line-height: 1.1 !important;
+  }
+
+  body main {
+    gap: 0.5rem !important;
+  }
+
+  body .sudoku-grid {
+    --sudoku-board-size: clamp(12rem, calc(100svh - 29.25rem), calc(100vw - 1rem));
+    width: min(100%, var(--sudoku-board-size)) !important;
+  }
+
+  body .sudoku-cell {
+    font-size: clamp(0.75rem, 4vw, 1.125rem) !important;
+  }
+
+  body aside {
+    gap: 0.5rem !important;
+  }
+
+  body aside section {
+    padding: 0.375rem !important;
+  }
+
+  body .difficulty-panel {
+    display: grid !important;
+    grid-template-columns: 4.75rem minmax(0, 1fr);
+    align-items: center;
+    gap: 0.375rem !important;
+  }
+
+  body .difficulty-panel > .text-xs:first-child {
+    margin: 0 !important;
+  }
+
+  body .difficulty-panel > .grid {
+    gap: 0.35rem !important;
+  }
+
+  body aside section > .text-xs:first-child,
+  body .algo-ring > .text-xs:first-child {
+    margin-bottom: 0.25rem !important;
+  }
+
+  body aside button {
+    padding-top: 0.35rem !important;
+    padding-bottom: 0.35rem !important;
+    min-height: 1.875rem !important;
+    font-size: 0.75rem !important;
+  }
+
+  body .algo-ring {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem !important;
+  }
+
+  body .algo-ring > .text-xs:first-child,
+  body .algo-ring > .algo-select,
+  body .algo-ring > button,
+  body .algo-ring > .grid,
+  body .algo-ring > hr {
+    margin: 0 !important;
+  }
+
+  body .algo-ring > .text-xs:first-child {
+    align-self: center;
+  }
+
+  body .algo-ring > .text-xs:nth-of-type(2),
+  body .algo-ring > button,
+  body .algo-ring > .grid,
+  body .algo-ring > hr {
+    grid-column: 1 / -1;
+  }
+
+  body .algo-ring > hr {
+    display: none !important;
+  }
+
+  body .algo-select {
+    min-height: 1.875rem !important;
+    padding: 0.35rem 2rem 0.35rem 0.625rem !important;
+    font-size: 0.75rem !important;
+    background-position: right 0.625rem center !important;
+  }
+
+  body .status-panel {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.35rem !important;
+  }
+
+  body .status-panel .status-header,
+  body .status-panel p {
+    grid-column: 1 / -1;
+    margin: 0 !important;
+  }
+
+  body .status-panel > .grid {
+    display: contents !important;
+  }
+
+  body .stat-time {
+    margin-top: 0 !important;
+  }
+
+  body .stat-place,
+  body .stat-back,
+  body .stat-time {
+    padding: 0.3rem 0.25rem !important;
+  }
+
+  body .stat-label {
+    font-size: 0.5rem !important;
+    letter-spacing: 0.05em !important;
+    margin-bottom: 1px !important;
+  }
+
+  body .stat-value {
+    font-size: 0.8125rem !important;
+  }
+
+  body .status-panel p {
+    font-size: 0.6875rem !important;
+    line-height: 1.1 !important;
+  }
+}
