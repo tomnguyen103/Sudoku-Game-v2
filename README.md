@@ -4,6 +4,14 @@ A browser-based visualizer for Sudoku backtracking. The app generates a valid Ea
 
 This project is a static web app deployed from the repository root. It has no backend, no bundler, and no build output directory.
 
+## Live Project
+
+[Open the live Sudoku Solver Visualizer](https://sudoku.tomnguyen.me/)
+
+## Project Image
+
+![Sudoku Solver Visualizer interface](sudoku-display.png)
+
 ## What It Does
 
 - Generates fresh Sudoku layouts for Easy, Medium, and Hard.
