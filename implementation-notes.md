@@ -46,7 +46,14 @@ Running log of decisions, tradeoffs, and changes made during design and implemen
 
 **Decision — PWA:** Progressive Web App via `manifest.json` + `sw.js`. Chosen over true native (React Native/Flutter) to stay within the static Netlify deploy model. Adds two files + an icons folder. Service worker uses cache-first strategy — pre-caches all static assets on first install. HTTPS is required for service workers; Netlify provides this on all deployments automatically.
 
-**Decision — Score tracking:** Personal best times per difficulty stored in `localStorage` key `'sudoku-best'`. No backend, no accounts. Global leaderboard was considered and rejected — would require a database (Supabase/Firebase) and add significant complexity. Can be added in v2 if needed.
+**Decision — Score tracking:** Personal best (localStorage) for web v1. Global leaderboard added via FastAPI + Supabase backend in a later phase.
+
+**Decision — Auth:** Clerk (not Supabase Auth, not custom JWT). Works across all three sub-projects: Clerk JS SDK (web), @clerk/clerk-expo (native), JWT validation middleware (FastAPI). Config keys to be provided by user — treat as placeholder until supplied. Do not hardcode or guess Clerk publishable/secret keys.
+
+**Decision — Project sequencing:** Three separate sub-projects, each with its own spec → plan → build cycle:
+1. **Web** (current) — Tailwind + Alpine.js static site, Netlify. Spec complete, ready to build.
+2. **Backend** — FastAPI + Supabase + Clerk JWT validation. Spec session later.
+3. **Native** — React Native + Expo + @clerk/clerk-expo. Spec session after backend.
 
 **Note — PWA icons:** The spec calls for `icons/icon-192.png` and `icons/icon-512.png`. These need to be created (simple Sudoku grid logo or text-based icon). No design tool specified — a programmatically generated SVG converted to PNG is the simplest approach.
 
