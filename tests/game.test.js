@@ -258,4 +258,15 @@ clearInterval(runTimeGame._interval);
 Date.now = origNow3;
 assert.strictEqual(runTimeGame._runStartTime, 8000, 'runSolver: sets _runStartTime to Date.now()');
 
+// runSolver from solved state resets _elapsedMs
+const replayGame = sudokuGame();
+replayGame.initialBoard = unsolved.map(row => [...row]);
+replayGame.board = unsolved.map(row => [...row]);
+replayGame.locked = Array.from({ length: 9 }, () => Array(9).fill(false));
+replayGame.status = 'solved';
+replayGame._elapsedMs = 3500;
+replayGame.runSolver();
+clearInterval(replayGame._interval);
+assert.strictEqual(replayGame._elapsedMs, 0, 'runSolver from solved: resets _elapsedMs to 0');
+
 console.log('All solving-time lifecycle tests passed.');

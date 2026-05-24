@@ -89,6 +89,8 @@
         if (this.status === 'running') return;
 
         if (!this.steps.length || this.status === 'ready' || this.status === 'solved') {
+          this._elapsedMs = 0;
+          this._runStartTime = null;
           const trace = createBacktrackingTrace(this.initialBoard);
           this.steps = trace.steps;
           this.solvedBoard = trace.solvedBoard;
