@@ -3,185 +3,144 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sudoku</title>
-  <!-- PWA -->
+  <title>Sudoku Solver Visualizer</title>
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#3b82f6">
+  <meta name="theme-color" content="#2563eb">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Sudoku">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <script>tailwind.config = { darkMode: 'class' }</script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-  <link rel="stylesheet" href="style.css">
-  <script src="game.js"></script>
+  <script>
+    window.tailwind = window.tailwind || {};
+    window.tailwind.config = { darkMode: 'class' };
+  </script>
+  <script src="vendor/tailwindcss.js?v=20260524-workflow"></script>
+  <script defer src="vendor/alpine.min.js?v=20260524-workflow"></script>
+  <link rel="stylesheet" href="style.css?v=20260524-finish-now">
+  <script src="src/solver.js?v=20260524-workflow"></script>
+  <script src="src/generator.js?v=20260524-workflow"></script>
+  <script src="src/visualizer.js?v=20260524-workflow"></script>
 </head>
 <body
-  class="min-h-screen bg-gray-50 dark:bg-slate-900 transition-colors duration-200 p-4"
+  class="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-200 px-3 py-4 sm:p-5"
   x-data="sudokuGame()"
   x-init="init()"
-  @keydown.window="handleKey($event)"
 >
-  <!-- Header -->
-  <header class="flex items-center justify-between max-w-3xl mx-auto mb-6">
-    <h1 class="text-2xl font-black tracking-widest text-slate-800 dark:text-slate-100">SUDOKU</h1>
+  <header class="flex items-center justify-between max-w-5xl mx-auto mb-4 sm:mb-5">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-black tracking-widest text-slate-900 dark:text-slate-100">SUDOKU</h1>
+      <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400">Backtracking solver visualizer</p>
+    </div>
     <button
       @click="toggleDark()"
-      class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors"
+      class="inline-flex h-10 w-10 items-center justify-center rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
+      :aria-label="darkMode ? 'Switch to light mode' : 'Switch to dark mode'"
       :title="darkMode ? 'Switch to light mode' : 'Switch to dark mode'"
     >
-      <span x-show="!darkMode">☀️</span>
-      <span x-show="darkMode">🌙</span>
+      <svg x-show="!darkMode" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <circle cx="12" cy="12" r="4"></circle>
+        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
+      </svg>
+      <svg x-show="darkMode" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M20.99 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.78 9.79Z"></path>
+      </svg>
     </button>
   </header>
 
-  <!-- Main layout: grid + sidebar -->
-  <main class="flex flex-col sm:flex-row gap-6 max-w-3xl mx-auto">
-
-    <!-- Sudoku Grid -->
-    <div class="sudoku-grid flex-1 max-w-md mx-auto sm:mx-0">
-      <template x-for="(row, r) in board" :key="r">
-        <template x-for="(val, c) in row" :key="c">
-          <div
-            class="sudoku-cell"
-            :class="{
-              'bg-white dark:bg-slate-800': !isWrong(r, c) && !(selected?.row === r && selected?.col === c) && !isSameNumber(r, c) && !isRelated(r, c),
-              'bg-blue-50 dark:bg-slate-700': isRelated(r, c) && !(selected?.row === r && selected?.col === c),
-              'bg-blue-100 dark:bg-blue-950': isSameNumber(r, c) && !(selected?.row === r && selected?.col === c),
-              'bg-blue-200 dark:bg-blue-900': selected?.row === r && selected?.col === c && !isWrong(r, c),
-              'bg-red-100 dark:bg-red-950': isWrong(r, c),
-              'text-slate-800 dark:text-slate-100': locked[r] && locked[r][c],
-              'text-blue-600 dark:text-blue-400': !locked[r]?.[c] && !isWrong(r, c) && val !== 0,
-              'text-red-600 dark:text-red-400': isWrong(r, c),
-            }"
-            @click="selectCell(r, c)"
-            x-text="val || ''"
-          ></div>
-        </template>
+  <main class="flex flex-col lg:flex-row items-center lg:items-start justify-center gap-5 sm:gap-6 max-w-5xl mx-auto">
+    <div class="sudoku-grid w-full max-w-[31rem]">
+      <template x-for="cell in cells()" :key="cell.key">
+        <div
+          class="sudoku-cell"
+          :aria-label="cell.value ? `Row ${cell.row + 1}, column ${cell.col + 1}, ${cell.value}` : `Row ${cell.row + 1}, column ${cell.col + 1}, empty`"
+          :class="{
+            'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100': cellKind(cell.row, cell.col) === 'given',
+            'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300': cellKind(cell.row, cell.col) === 'generated' && !isCurrentCell(cell.row, cell.col),
+            'bg-white dark:bg-slate-900 text-transparent': cellKind(cell.row, cell.col) === 'empty',
+            'bg-amber-200 dark:bg-amber-800 text-amber-950 dark:text-amber-100': isCurrentCell(cell.row, cell.col) && !isBacktracked(cell.row, cell.col),
+            'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300': isBacktracked(cell.row, cell.col),
+          }"
+          x-text="cell.value || ''"
+        ></div>
       </template>
     </div>
 
-    <!-- Sidebar -->
-    <aside class="w-full sm:w-44 flex flex-col gap-4">
-
-      <!-- Timer + Best -->
-      <div class="bg-white dark:bg-slate-800 rounded-xl p-3 shadow-sm text-center">
-        <div class="text-xs text-gray-400 dark:text-slate-400 uppercase tracking-wider mb-1">Timer</div>
-        <div class="text-2xl font-mono font-bold text-slate-800 dark:text-slate-100" x-text="formatTime(timer)"></div>
-        <button
-          @click="togglePause()"
-          class="mt-1 text-xs px-2 py-0.5 rounded bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
-          x-text="paused ? '▶ Resume' : '⏸ Pause'"
-        ></button>
-        <div
-          x-show="bestTime() !== null"
-          class="mt-2 text-xs text-gray-400 dark:text-slate-400"
-        >
-          Best: <span class="font-semibold text-blue-600 dark:text-blue-400" x-text="bestTime()"></span>
-        </div>
-      </div>
-
-      <!-- Difficulty pills -->
-      <div class="bg-white dark:bg-slate-800 rounded-xl p-3 shadow-sm">
-        <div class="text-xs text-gray-400 dark:text-slate-400 uppercase tracking-wider mb-2">Difficulty</div>
-        <div class="grid grid-cols-2 gap-1">
-          <template x-for="d in ['easy','medium','hard','expert']" :key="d">
+    <aside class="w-full max-w-[31rem] lg:w-72 grid grid-cols-2 lg:flex lg:flex-col gap-3">
+      <section class="col-span-2 bg-white dark:bg-slate-800 rounded-lg p-3 shadow-sm ring-1 ring-slate-200/70 dark:ring-slate-700/70">
+        <div class="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Difficulty</div>
+        <div class="grid grid-cols-3 gap-1.5">
+          <template x-for="d in ['easy','medium','hard']" :key="d">
             <button
               @click="setDifficulty(d)"
+              :disabled="status === 'running'"
               :class="difficulty === d
                 ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600'"
-              class="capitalize text-xs font-semibold py-1.5 rounded-lg transition-colors"
+                : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'"
+              class="capitalize text-sm font-semibold py-2 rounded-md transition-colors disabled:opacity-60"
               x-text="d"
             ></button>
           </template>
         </div>
-      </div>
+      </section>
 
-      <!-- Error counter -->
-      <div class="bg-white dark:bg-slate-800 rounded-xl p-3 shadow-sm text-center">
-        <div class="text-xs text-gray-400 dark:text-slate-400 uppercase tracking-wider mb-1">Mistakes</div>
-        <div
-          class="text-xl font-bold"
-          :class="errors > 0 ? 'text-red-500' : 'text-slate-400 dark:text-slate-500'"
-          x-text="`${errors} / ${maxErrors}`"
-        ></div>
-      </div>
+      <section class="col-span-2 bg-white dark:bg-slate-800 rounded-lg p-3 shadow-sm ring-1 ring-slate-200/70 dark:ring-slate-700/70">
+        <div class="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Backtracking</div>
+        <p class="min-h-10 text-sm leading-5 text-slate-700 dark:text-slate-300" x-text="statusText()"></p>
+        <div class="mt-3 grid grid-cols-2 gap-2 text-center">
+          <div class="rounded-md bg-slate-100 dark:bg-slate-700 px-2 py-2">
+            <div class="text-xs text-slate-500 dark:text-slate-400">Step</div>
+            <div class="font-mono font-bold text-slate-900 dark:text-slate-100" x-text="`${stepIndex} / ${steps.length}`"></div>
+          </div>
+          <div class="rounded-md bg-slate-100 dark:bg-slate-700 px-2 py-2">
+            <div class="text-xs text-slate-500 dark:text-slate-400">State</div>
+            <div class="font-bold capitalize text-slate-900 dark:text-slate-100" x-text="status"></div>
+          </div>
+        </div>
+      </section>
 
-      <!-- Number pad -->
-      <div class="bg-white dark:bg-slate-800 rounded-xl p-3 shadow-sm">
-        <div class="grid grid-cols-3 gap-1.5">
-          <template x-for="n in [1,2,3,4,5,6,7,8,9]" :key="n">
+      <section class="col-span-2 bg-white dark:bg-slate-800 rounded-lg p-3 shadow-sm ring-1 ring-slate-200/70 dark:ring-slate-700/70">
+        <div class="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Speed</div>
+        <div class="grid grid-cols-4 gap-1.5">
+          <template x-for="option in ['1x','2x','5x','10x']" :key="option">
             <button
-              @click="enterNumber(n)"
-              class="aspect-square flex items-center justify-center text-base font-bold rounded-lg bg-blue-50 dark:bg-slate-700 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-slate-600 border border-blue-200 dark:border-slate-600 transition-colors"
-              x-text="n"
+              @click="setSpeed(option)"
+              :class="speed === option
+                ? 'bg-blue-600 text-white'
+                : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'"
+              class="text-sm font-bold py-2 rounded-md transition-colors"
+              x-text="option"
             ></button>
           </template>
-          <button
-            @click="erase()"
-            class="col-span-3 py-1.5 text-sm font-semibold rounded-lg bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-slate-300 hover:bg-gray-200 dark:hover:bg-slate-600 transition-colors"
-          >⌫ Erase</button>
         </div>
-      </div>
+      </section>
 
-      <!-- Actions -->
-      <div class="flex flex-col gap-2">
-        <button
-          @click="undo()"
-          class="w-full py-2 text-sm font-semibold rounded-xl bg-white dark:bg-slate-800 shadow-sm text-slate-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 border border-gray-200 dark:border-slate-600 transition-colors"
-        >↩ Undo</button>
-        <button
-          @click="newGame()"
-          class="w-full py-2 text-sm font-semibold rounded-xl bg-slate-800 dark:bg-blue-600 text-white hover:bg-slate-700 dark:hover:bg-blue-500 transition-colors shadow-sm"
-        >＋ New Game</button>
-      </div>
-
+      <button
+        @click="runSolver()"
+        :disabled="status === 'running'"
+        class="py-3 text-sm font-bold rounded-lg bg-blue-600 text-white hover:bg-blue-500 transition-colors shadow-sm disabled:opacity-60"
+      >Run Backtracking Algorithm</button>
+      <button
+        @click="pauseSolver()"
+        :disabled="status !== 'running'"
+        class="py-3 text-sm font-bold rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600 transition-colors disabled:opacity-60"
+      >Pause</button>
+      <button
+        @click="finishNow()"
+        :disabled="status === 'solved'"
+        class="py-3 text-sm font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 transition-colors shadow-sm disabled:opacity-60"
+      >Finish Now</button>
+      <button
+        @click="resetPuzzle()"
+        class="py-3 text-sm font-bold rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600 transition-colors"
+      >Reset</button>
+      <button
+        @click="newTest()"
+        :disabled="status === 'running'"
+        class="py-3 text-sm font-bold rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-700 dark:hover:bg-white transition-colors shadow-sm disabled:opacity-60"
+      >New Test</button>
     </aside>
-
   </main>
 
-  <!-- Win overlay -->
-  <div
-    x-show="status === 'won'"
-    x-transition
-    class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-  >
-    <div class="bg-white dark:bg-slate-800 rounded-2xl p-8 text-center shadow-2xl max-w-sm w-full mx-4">
-      <div class="text-5xl mb-3">🎉</div>
-      <h2 class="text-2xl font-black text-slate-800 dark:text-slate-100 mb-1">Puzzle Solved!</h2>
-      <p class="text-gray-500 dark:text-slate-400 text-sm mb-2">
-        <span class="capitalize" x-text="difficulty"></span> completed in
-        <span class="font-semibold text-blue-600 dark:text-blue-400" x-text="formatTime(timer)"></span>
-      </p>
-      <p
-        x-show="bestTimes[difficulty] === timer"
-        class="text-xs text-green-600 dark:text-green-400 font-semibold mb-4"
-      >🏆 New personal best!</p>
-      <button
-        @click="newGame()"
-        class="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-colors"
-      >Play Again</button>
-    </div>
-  </div>
-
-  <!-- Game over overlay -->
-  <div
-    x-show="status === 'gameover'"
-    x-transition
-    class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-  >
-    <div class="bg-white dark:bg-slate-800 rounded-2xl p-8 text-center shadow-2xl max-w-sm w-full mx-4">
-      <div class="text-5xl mb-3">💀</div>
-      <h2 class="text-2xl font-black text-slate-800 dark:text-slate-100 mb-1">Game Over</h2>
-      <p class="text-gray-500 dark:text-slate-400 text-sm mb-6">3 mistakes — the solution has been revealed.</p>
-      <button
-        @click="newGame()"
-        class="w-full py-3 bg-slate-800 dark:bg-blue-600 hover:bg-slate-700 dark:hover:bg-blue-500 text-white font-bold rounded-xl transition-colors"
-      >Try Again</button>
-    </div>
-  </div>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {

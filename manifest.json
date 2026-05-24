@@ -1,11 +1,11 @@
 {
-  "name": "Sudoku",
-  "short_name": "Sudoku",
-  "description": "Classic Sudoku puzzle game with 4 difficulty levels",
+  "name": "Sudoku Solver Visualizer",
+  "short_name": "Sudoku Solver",
+  "description": "Backtracking Sudoku solver visualizer with generated layouts",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f9fafb",
-  "theme_color": "#3b82f6",
+  "theme_color": "#2563eb",
   "orientation": "portrait-primary",
   "icons": [
     {

@@ -1,9 +1,13 @@
-const CACHE = 'sudoku-v1';
+const CACHE = 'sudoku-v10';
 const ASSETS = [
   '/',
   '/index.html',
   '/style.css',
-  '/game.js',
+  '/src/solver.js',
+  '/src/generator.js',
+  '/src/visualizer.js',
+  '/vendor/tailwindcss.js',
+  '/vendor/alpine.min.js',
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',

@@ -1,0 +1,14 @@
+{
+  "name": "sudoku",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "npm test",
+    "test": "node tests/game.test.js && node tests/project.test.js",
+    "test:logic": "node tests/game.test.js",
+    "test:smoke": "node tests/smoke.test.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.60.0"
+  }
+}

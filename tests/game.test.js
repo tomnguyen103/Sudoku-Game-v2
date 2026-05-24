@@ -1,5 +1,15 @@
 const assert = require('assert');
-const { isValid, solvePuzzle, countSolutions } = require('../game.js');
+const {
+  isValid,
+  solvePuzzle,
+  hasValidGivens,
+  isSolvableLayout,
+  countSolutions,
+  createBacktrackingTrace,
+  generateTestPuzzle,
+  PLAYBACK_SPEEDS,
+  sudokuGame,
+} = require('../game.js');
 
 // isValid tests
 const emptyBoard = Array.from({ length: 9 }, () => Array(9).fill(0));
@@ -36,6 +46,28 @@ assert.strictEqual(solved, true, 'solvePuzzle returns true');
 assert.strictEqual(board[0][2], 4, 'correct value at [0][2]');
 assert.strictEqual(board[1][1], 7, 'correct value at [1][1]');
 
+// layout validation tests
+const conflictedCompleteBoard = [
+  [1,1,3,4,5,6,7,8,9],
+  [4,5,6,7,8,9,1,2,3],
+  [7,8,9,1,2,3,4,5,6],
+  [2,3,4,5,6,7,8,9,1],
+  [5,6,7,8,9,1,2,3,4],
+  [8,9,1,2,3,4,5,6,7],
+  [3,4,5,6,7,8,9,1,2],
+  [6,7,8,9,1,2,3,4,5],
+  [9,1,2,3,4,5,6,7,8]
+];
+assert.strictEqual(hasValidGivens(conflictedCompleteBoard), false, 'duplicate givens are invalid');
+assert.strictEqual(isSolvableLayout(conflictedCompleteBoard), false, 'conflicted complete board is not solvable');
+assert.strictEqual(solvePuzzle(conflictedCompleteBoard.map(row => [...row])), false, 'solver rejects conflicted complete boards');
+assert.deepStrictEqual(
+  createBacktrackingTrace(conflictedCompleteBoard),
+  { solved: false, steps: [], solvedBoard: null },
+  'trace rejects conflicted layouts before playback'
+);
+assert.strictEqual(isSolvableLayout(unsolved), true, 'known puzzle is solvable');
+
 // countSolutions tests
 const uniqueBoard = unsolved.map(r => [...r]);
 assert.strictEqual(countSolutions(uniqueBoard, 2), 1, 'known puzzle has exactly 1 solution');
@@ -44,6 +76,85 @@ const emptyTest = emptyBoard.map(r => [...r]);
 assert.strictEqual(countSolutions(emptyTest, 2), 2, 'empty board has more than 1 solution (capped at 2)');
 
 console.log('All solver tests passed.');
+
+// backtracking trace tests
+const tracePuzzle = [
+  [1,2,3,4,5,6,7,8,0],
+  [4,5,6,7,8,9,1,2,3],
+  [7,8,9,1,2,3,4,5,6],
+  [2,3,4,5,6,7,8,9,1],
+  [5,6,7,8,9,1,2,3,4],
+  [8,9,1,2,3,4,5,6,7],
+  [3,4,5,6,7,8,9,1,2],
+  [6,7,8,9,1,2,3,4,5],
+  [9,1,2,3,4,5,6,7,8]
+];
+const traceResult = createBacktrackingTrace(tracePuzzle);
+assert.strictEqual(traceResult.solved, true, 'trace puzzle is solved');
+assert.deepStrictEqual(traceResult.solvedBoard[0], [1,2,3,4,5,6,7,8,9], 'trace solved board fills missing value');
+assert.deepStrictEqual(
+  traceResult.steps.map(({ type, row, col, value }) => ({ type, row, col, value })),
+  [{ type: 'place', row: 0, col: 8, value: 9 }],
+  'trace records the generated placement'
+);
+assert.strictEqual(tracePuzzle[0][8], 0, 'trace does not mutate the input board');
+
+const backtrackResult = createBacktrackingTrace(unsolved);
+assert.strictEqual(backtrackResult.solved, true, 'trace still solves after a dead-end candidate');
+assert.ok(backtrackResult.steps.some(step => step.type === 'backtrack'), 'trace records backtracking removals');
+assert.deepStrictEqual(backtrackResult.solvedBoard[0], [5,3,4,6,7,8,9,1,2], 'trace recovers final solution after backtracking');
+
+console.log('All backtracking trace tests passed.');
+
+// visualizer test puzzle tests
+const expectedEmptyRanges = {
+  easy: [30, 40],
+  medium: [40, 50],
+  hard: [46, 56],
+};
+
+for (const difficulty of ['easy', 'medium', 'hard']) {
+  const { board: testBoard, locked: testLocked } = generateTestPuzzle(difficulty);
+  assert.strictEqual(testBoard.length, 9, `${difficulty} test has 9 rows`);
+  assert.strictEqual(testBoard[0].length, 9, `${difficulty} test has 9 columns`);
+  assert.strictEqual(testLocked.length, 9, `${difficulty} locked map has 9 rows`);
+  const emptyCells = testBoard.flat().filter(value => value === 0).length;
+  assert.ok(
+    emptyCells >= expectedEmptyRanges[difficulty][0] && emptyCells <= expectedEmptyRanges[difficulty][1],
+    `${difficulty} has expected empty-cell range, got ${emptyCells}`
+  );
+  assert.strictEqual(countSolutions(testBoard, 2), 1, `${difficulty} test has a unique solution`);
+  assert.strictEqual(isSolvableLayout(testBoard), true, `${difficulty} test passes the preflight solver check`);
+}
+
+assert.deepStrictEqual(
+  Object.keys(PLAYBACK_SPEEDS),
+  ['1x', '2x', '5x', '10x'],
+  'visualizer exposes fixed speed multipliers'
+);
+assert.ok(PLAYBACK_SPEEDS['1x'] > PLAYBACK_SPEEDS['2x'], '2x is faster than 1x');
+assert.ok(PLAYBACK_SPEEDS['2x'] > PLAYBACK_SPEEDS['5x'], '5x is faster than 2x');
+assert.ok(PLAYBACK_SPEEDS['5x'] > PLAYBACK_SPEEDS['10x'], '10x is faster than 5x');
+
+console.log('All visualizer test puzzle tests passed.');
+
+// visualizer finish-now state tests
+const finishGame = sudokuGame();
+finishGame.initialBoard = unsolved.map(row => [...row]);
+finishGame.board = unsolved.map(row => [...row]);
+finishGame.locked = Array.from({ length: 9 }, () => Array(9).fill(false));
+finishGame.status = 'running';
+finishGame.steps = [{ type: 'place', row: 0, col: 2, value: 4 }];
+finishGame.stepIndex = 1;
+finishGame._interval = setInterval(() => {}, 1000);
+finishGame.finishNow();
+assert.strictEqual(finishGame.status, 'solved', 'finishNow marks the visualizer solved');
+assert.strictEqual(finishGame._interval, null, 'finishNow stops playback');
+assert.deepStrictEqual(finishGame.board[0], [5,3,4,6,7,8,9,1,2], 'finishNow fills the solved board');
+assert.deepStrictEqual(finishGame.solvedBoard[0], [5,3,4,6,7,8,9,1,2], 'finishNow stores the solved board');
+assert.strictEqual(finishGame.stepIndex, finishGame.steps.length, 'finishNow advances to the end of the trace');
+
+console.log('All visualizer finish-now tests passed.');
 
 const { generateSolution, shuffleBoard, removeClues } = require('../game.js');
 
