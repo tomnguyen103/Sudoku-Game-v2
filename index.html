@@ -4,21 +4,23 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sudoku Solver Visualizer</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#2563eb">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Sudoku">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <script src="vendor/tailwindcss.js?v=20260524-workflow"></script>
+  <script src="vendor/tailwindcss.js?v=20260524-favicon"></script>
   <script>
     tailwind.config = { darkMode: 'class' };
   </script>
-  <script defer src="vendor/alpine.min.js?v=20260524-workflow"></script>
-  <link rel="stylesheet" href="style.css?v=20260524-finish-now">
-  <script src="src/solver.js?v=20260524-workflow"></script>
-  <script src="src/generator.js?v=20260524-workflow"></script>
-  <script src="src/visualizer.js?v=20260524-workflow"></script>
+  <script defer src="vendor/alpine.min.js?v=20260524-favicon"></script>
+  <link rel="stylesheet" href="style.css?v=20260524-favicon">
+  <script src="src/solver.js?v=20260524-favicon"></script>
+  <script src="src/generator.js?v=20260524-favicon"></script>
+  <script src="src/visualizer.js?v=20260524-favicon"></script>
 </head>
 <body
   class="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-200 px-3 py-4 sm:p-5"
@@ -58,20 +60,21 @@
             'bg-white dark:bg-slate-900 text-transparent': cellKind(cell.row, cell.col) === 'empty',
             'bg-amber-200 dark:bg-amber-800 text-amber-950 dark:text-amber-100': isCurrentCell(cell.row, cell.col) && !isBacktracked(cell.row, cell.col),
             'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300': isBacktracked(cell.row, cell.col),
+            'finish-flash': finishFlash && cellKind(cell.row, cell.col) !== 'given',
           }"
           x-text="cell.value || ''"
         ></div>
       </template>
     </div>
 
-    <aside class="w-full max-w-[31rem] lg:w-72 grid grid-cols-2 lg:flex lg:flex-col gap-3">
-      <section class="col-span-2 bg-white dark:bg-slate-800 rounded-lg p-3 shadow-sm ring-1 ring-slate-200/70 dark:ring-slate-700/70">
+    <aside class="w-full max-w-[31rem] lg:w-72 flex flex-col gap-3">
+      <section class="bg-white dark:bg-slate-800 rounded-lg p-3 shadow-sm ring-1 ring-slate-200/70 dark:ring-slate-700/70">
         <div class="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Difficulty</div>
         <div class="grid grid-cols-3 gap-1.5">
           <template x-for="d in ['easy','medium','hard']" :key="d">
             <button
               @click="setDifficulty(d)"
-              :disabled="status === 'running'"
+              :disabled="status === 'running' || status === 'loading'"
               :class="difficulty === d
                 ? 'bg-blue-600 text-white'
                 : 'bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'"
@@ -82,24 +85,22 @@
         </div>
       </section>
 
-      <section class="col-span-2 bg-white dark:bg-slate-800 rounded-lg p-3 shadow-sm ring-1 ring-slate-200/70 dark:ring-slate-700/70">
-        <div class="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Backtracking</div>
-        <p class="min-h-10 text-sm leading-5 text-slate-700 dark:text-slate-300" x-text="statusText()"></p>
-        <div class="mt-3 grid grid-cols-2 gap-2 text-center">
-          <div class="rounded-md bg-slate-100 dark:bg-slate-700 px-2 py-2">
-            <div class="text-xs text-slate-500 dark:text-slate-400">Step</div>
-            <div class="font-mono font-bold text-slate-900 dark:text-slate-100" x-text="`${stepIndex} / ${steps.length}`"></div>
-          </div>
-          <div class="rounded-md bg-slate-100 dark:bg-slate-700 px-2 py-2">
-            <div class="text-xs text-slate-500 dark:text-slate-400">State</div>
-            <div class="font-bold capitalize text-slate-900 dark:text-slate-100" x-text="status"></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="col-span-2 bg-white dark:bg-slate-800 rounded-lg p-3 shadow-sm ring-1 ring-slate-200/70 dark:ring-slate-700/70">
-        <div class="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Speed</div>
-        <div class="grid grid-cols-4 gap-1.5">
+      <section class="algo-ring bg-white dark:bg-slate-800 rounded-lg p-3 shadow-sm">
+        <div class="text-xs uppercase tracking-wider mb-2 font-bold text-violet-400 dark:text-violet-400">⬡ Algorithm</div>
+        <select
+          x-model="selectedAlgorithm"
+          :disabled="status === 'running' || status === 'loading'"
+          class="algo-select mb-3 disabled:opacity-60"
+        >
+          <option value="backtracking">⬡ Backtracking DFS</option>
+        </select>
+        <button
+          @click="runSolver()"
+          :disabled="status === 'running' || status === 'loading'"
+          class="w-full py-3 text-sm font-bold rounded-lg bg-blue-600 text-white hover:bg-blue-500 transition-colors shadow-sm disabled:opacity-60 mb-2"
+        >Run Algorithm</button>
+        <div class="text-xs font-bold uppercase tracking-widest mb-1.5 text-violet-700 dark:text-violet-500">Speed</div>
+        <div class="grid grid-cols-4 gap-1.5 mb-3">
           <template x-for="option in ['1x','2x','5x','10x']" :key="option">
             <button
               @click="setSpeed(option)"
@@ -111,32 +112,49 @@
             ></button>
           </template>
         </div>
+        <hr class="border-slate-200 dark:border-slate-600 mb-3">
+        <div class="grid grid-cols-2 gap-2 mb-2">
+          <button
+            @click="pauseSolver()"
+            :disabled="status !== 'running'"
+            class="py-3 text-sm font-bold rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600 transition-colors disabled:opacity-60"
+          >Pause</button>
+          <button
+            @click="finishNow()"
+            :disabled="status === 'solved' || status === 'loading'"
+            class="py-3 text-sm font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 transition-colors shadow-sm disabled:opacity-60"
+          >Finish Now</button>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <button
+            @click="resetPuzzle()"
+            class="py-3 text-sm font-bold rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600 transition-colors"
+          >Reset</button>
+          <button
+            @click="newPuzzle()"
+            :disabled="status === 'running' || status === 'loading'"
+            class="py-3 text-sm font-bold rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-700 dark:hover:bg-white transition-colors shadow-sm disabled:opacity-60"
+          >New Puzzle</button>
+        </div>
       </section>
 
-      <button
-        @click="runSolver()"
-        :disabled="status === 'running'"
-        class="py-3 text-sm font-bold rounded-lg bg-blue-600 text-white hover:bg-blue-500 transition-colors shadow-sm disabled:opacity-60"
-      >Run Backtracking Algorithm</button>
-      <button
-        @click="pauseSolver()"
-        :disabled="status !== 'running'"
-        class="py-3 text-sm font-bold rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600 transition-colors disabled:opacity-60"
-      >Pause</button>
-      <button
-        @click="finishNow()"
-        :disabled="status === 'solved'"
-        class="py-3 text-sm font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 transition-colors shadow-sm disabled:opacity-60"
-      >Finish Now</button>
-      <button
-        @click="resetPuzzle()"
-        class="py-3 text-sm font-bold rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-600 transition-colors"
-      >Reset</button>
-      <button
-        @click="newTest()"
-        :disabled="status === 'running'"
-        class="py-3 text-sm font-bold rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-700 dark:hover:bg-white transition-colors shadow-sm disabled:opacity-60"
-      >New Test</button>
+      <section class="bg-white dark:bg-slate-800 rounded-lg p-3 shadow-sm ring-1 ring-slate-200/70 dark:ring-slate-700/70">
+        <div class="status-header">
+          <div class="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider">Status</div>
+          <span class="algo-badge" x-text="algorithmBadgeLabel()"></span>
+        </div>
+        <div class="grid grid-cols-2 gap-2 mb-2">
+          <div class="stat-place">
+            <div class="stat-label">✦ Placed</div>
+            <div class="stat-value" x-text="placedCount"></div>
+          </div>
+          <div class="stat-back">
+            <div class="stat-label">↩ Backtracks</div>
+            <div class="stat-value" x-text="backtrackedCount"></div>
+          </div>
+        </div>
+        <p class="text-xs text-center text-slate-500 dark:text-slate-400" x-text="statusText()"></p>
+      </section>
     </aside>
   </main>
 
