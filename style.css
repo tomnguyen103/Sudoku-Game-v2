@@ -46,3 +46,13 @@
 .dark .sudoku-cell:nth-child(n+46):nth-child(-n+54) {
   border-bottom-color: #64748b;
 }
+
+@media (max-width: 639px) {
+  .sudoku-cell {
+    font-size: clamp(14px, 4vw, 22px);
+  }
+}
+
+button {
+  touch-action: manipulation;
+}
