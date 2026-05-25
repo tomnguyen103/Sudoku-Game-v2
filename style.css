@@ -91,6 +91,28 @@ button {
   animation: finish-fill 0.55s ease-out;
 }
 
+.cell-candidates {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  width: 100%;
+  height: 100%;
+}
+
+.cell-candidate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.5rem;
+  font-weight: 600;
+  line-height: 1;
+  color: #94a3b8;
+}
+
+.dark .cell-candidate {
+  color: #64748b;
+}
+
 /* === Control panel redesign === */
 
 .algo-ring {
@@ -239,6 +261,10 @@ button {
 
   body .sudoku-cell {
     font-size: clamp(0.75rem, 4vw, 1.125rem) !important;
+  }
+
+  body .cell-candidate {
+    font-size: clamp(0.4rem, 1.6vw, 0.55rem) !important;
   }
 
   body aside {

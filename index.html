@@ -57,13 +57,24 @@
           :class="{
             'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100': cellKind(cell.row, cell.col) === 'given',
             'bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300': cellKind(cell.row, cell.col) === 'generated' && !isCurrentCell(cell.row, cell.col),
-            'bg-white dark:bg-slate-900 text-transparent': cellKind(cell.row, cell.col) === 'empty',
-            'bg-amber-200 dark:bg-amber-800 text-amber-950 dark:text-amber-100': isCurrentCell(cell.row, cell.col) && !isBacktracked(cell.row, cell.col),
-            'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300': isBacktracked(cell.row, cell.col),
+            'bg-white dark:bg-slate-900 text-transparent': cellKind(cell.row, cell.col) === 'empty' && !isCurrentCell(cell.row, cell.col),
+            'bg-amber-200 dark:bg-amber-800 text-amber-950 dark:text-amber-100': isPlacingCell(cell.row, cell.col),
+            'bg-violet-200 dark:bg-violet-900 text-violet-950 dark:text-violet-100': isGuessCell(cell.row, cell.col),
+            'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300': isBacktracked(cell.row, cell.col) || isContradictionCell(cell.row, cell.col),
             'finish-flash': finishFlash && cellKind(cell.row, cell.col) !== 'given',
           }"
-          x-text="cell.value || ''"
-        ></div>
+        >
+          <template x-if="cell.value">
+            <span x-text="cell.value"></span>
+          </template>
+          <template x-if="!cell.value && cell.candidates">
+            <div class="cell-candidates">
+              <template x-for="d in [1,2,3,4,5,6,7,8,9]" :key="d">
+                <span class="cell-candidate" x-text="cell.candidates.includes(d) ? d : ''"></span>
+              </template>
+            </div>
+          </template>
+        </div>
       </template>
     </div>
 
@@ -95,6 +106,7 @@
         >
           <option value="backtracking">⬡ Backtracking DFS</option>
           <option value="mrv">⬡ Backtracking + MRV</option>
+          <option value="constraint">⬡ Constraint Propagation</option>
         </select>
         <button
           @click="runSolver()"
@@ -147,12 +159,12 @@
         </div>
         <div class="grid grid-cols-2 gap-2 mb-2">
           <div class="stat-place">
-            <div class="stat-label">✦ Placed</div>
-            <div class="stat-value" x-text="placedCount"></div>
+            <div class="stat-label" x-text="statLabelPrimary()"></div>
+            <div class="stat-value" x-text="statValuePrimary()"></div>
           </div>
           <div class="stat-back">
-            <div class="stat-label">↩ Backtracks</div>
-            <div class="stat-value" x-text="backtrackedCount"></div>
+            <div class="stat-label" x-text="statLabelSecondary()"></div>
+            <div class="stat-value" x-text="statValueSecondary()"></div>
           </div>
         </div>
         <div class="stat-time mt-2">
