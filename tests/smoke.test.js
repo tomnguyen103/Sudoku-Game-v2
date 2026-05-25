@@ -140,6 +140,26 @@ async function main() {
         cells.filter(cell => cell.textContent.trim()).length
       );
       assert.strictEqual(cpFilledCells, 81, 'Constraint Propagation fills every cell after Finish Now');
+
+      // human logic flow: named deduction status and pencil-mark snapshots render
+      await page.getByRole('button', { name: 'Reset' }).click();
+      await page.selectOption('select.algo-select', 'human');
+      await page.getByText('Select an algorithm and run the solver.').waitFor();
+      await page.getByRole('button', { name: 'Run Algorithm' }).click();
+      await page.locator('p').filter({ hasText: /Naked Single|Hidden Single|Naked Pair/ }).waitFor();
+      await page.waitForFunction(() =>
+        [...document.querySelectorAll('.cell-candidate')].some(el => el.textContent.trim() !== '')
+      );
+      await page.getByRole('button', { name: 'Pause' }).click();
+      await page.getByText('Solver paused.').waitFor();
+
+      await page.selectOption('select.algo-select', 'human-v2');
+      await page.getByText('Select an algorithm and run the solver.').waitFor();
+      await page.getByRole('button', { name: 'Run Algorithm' }).click();
+      await page.locator('p').filter({ hasText: /Naked Single|Hidden Single|Naked Pair|Hidden Pair|Pointing Pair\/Triple|Box-Line Reduction/ }).waitFor();
+      await page.getByRole('button', { name: 'Pause' }).click();
+      await page.getByText('Solver paused.').waitFor();
+
       assert.deepStrictEqual(errors, [], 'browser console has no errors');
     } finally {
       await browser.close();

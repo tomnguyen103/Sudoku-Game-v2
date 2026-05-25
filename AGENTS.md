@@ -19,7 +19,7 @@ The app has no bundler and no build output directory. `package.json` exists for 
 ```text
 index.html              <- markup + Alpine x-data root + local scripts + PWA meta tags
 style.css               <- Sudoku grid borders and fixed board sizing
-src/solver.js           <- validation, solvePuzzle, countSolutions, createBacktrackingTrace, createMrvTrace
+src/solver.js           <- validation, solvePuzzle, countSolutions, and trace builders
 src/generator.js        <- generateSolution, shuffleBoard, removeClues, generateTestPuzzle
 src/visualizer.js       <- sudokuGame() Alpine state and playback controls
 game.js                 <- CommonJS compatibility export for tests
@@ -35,7 +35,7 @@ docs/release-checklist.md <- release checklist
 
 - **App mode:** pure solver visualizer. Manual entry, mistakes, undo, erase, timer, score, and game-over/win overlays are intentionally removed.
 - **Current layout:** Easy, Medium, and Hard generate a test puzzle via `generateTestPuzzle(difficulty)`. The current layout stays fixed until the user changes difficulty or clicks `New Test`.
-- **Selectable algorithm:** the Algorithm `<select>` chooses which solver the visualizer animates — `Backtracking DFS` (`createBacktrackingTrace`) or `Backtracking + MRV` (`createMrvTrace`, which picks the empty cell with the fewest legal candidates each step). Both share the same `{ solved, steps, solvedBoard }` trace contract; `visualizer.js` maps `selectedAlgorithm` to a builder via `_buildTrace()`. Switching algorithm resets the current trace.
+- **Selectable algorithm:** the Algorithm `<select>` chooses which solver the visualizer animates — `Backtracking DFS`, `Backtracking + MRV`, `Constraint Propagation`, `Human Logic Solver`, or `Human Logic Solver v2`. All builders share the same `{ solved, steps, solvedBoard }` trace contract; `visualizer.js` maps `selectedAlgorithm` to a builder via `_buildTrace()`. Switching algorithm resets the current trace.
 - **Visualizer start:** the generated layout is shown in `ready` state. The algorithm does not animate until the user clicks `Run Algorithm`.
 - **Finish Now:** immediately solves the current layout, fills the board, advances the step count to the end of the computed trace, and marks the state `solved`.
 - **Solvability preflight:** generated layouts are validated with `isSolvableLayout(board)` and uniqueness is checked with `countSolutions(board, 2)`.
