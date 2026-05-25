@@ -300,3 +300,25 @@ The trace function copies the input board before solving so it does not mutate t
 **Cache update:** Bumped service worker cache from `sudoku-v22` to `sudoku-v23`. Updated all 6 runtime query strings in `index.html` from `?v=20260525-mobilewidth` to `?v=20260525-mrv`.
 
 **Docs follow-up:** Reworked the README "Solver Model" section into a "Solving Algorithms" section with a short learning paragraph for each implemented algorithm (Backtracking DFS and Backtracking + MRV), so a reader can understand how each search behaves. Updated the Algorithm Comparison intro (now states #1 and #2 are implemented) and reframed the former "Recommended next addition" block into "Why these two are implemented," with DLX/SAT listed as future candidates. README/AGENTS/CLAUDE are documentation-only and not in the `sw.js` asset list, so no further cache bump was required.
+
+---
+
+### 2026-05-25 - Third selectable algorithm: Constraint Propagation
+
+**Context:** Added Norvig-style constraint propagation (AC-3 + DFS search) as the third selectable algorithm. Chosen because it is visually distinct from the two backtracking variants — it shows candidate sets (pencil marks) shrinking and rippling rather than single cells filling.
+
+**Decision - Solver:** `createConstraintPropagationTrace(board)` in `src/solver.js`. Same `{ solved, steps, solvedBoard }` contract and invalid-givens rejection as the other builders. Candidate state is held as per-cell 9-bit masks internally. Propagation applies naked singles and hidden singles via a FIFO queue (one dequeued assignment + its peer eliminations = one wave). When propagation stalls, a fail-first DFS picks the fewest-candidate cell and guesses, copying the candidate grid per branch.
+
+**Decision - New step types:** `propagate` (an assignment + the peer eliminations it triggered), `guess` (a search hypothesis), and `contradiction` (a failed branch, grid restored). Every step carries `snapshot`, a 9x9 array where each cell is an array of remaining candidate digits (length 1 = solved). The visualizer renders snapshots directly; no candidate logic lives in the UI.
+
+**Decision - Wave granularity:** one propagation wave per step (assignment + its direct eliminations), so the ripple reads clearly while keeping step counts in the hundreds rather than thousands.
+
+**Decision - Pencil-mark render:** empty cells render a fixed 3x3 mini-grid of remaining candidates (digit n always in slot n), so digits do not reflow as the set shrinks. Solved/given cells render the single big number as before. Guess cells flash violet; contradiction cells flash red.
+
+**Decision - Algorithm-aware stats:** the two stat tiles relabel by algorithm. Backtracking/MRV keep Placed + Backtracks; Constraint Propagation shows Eliminations + Guesses. Solving Time is unchanged. Labels/values are driven by `statLabelPrimary/Secondary` and `statValuePrimary/Secondary`.
+
+**Tradeoff:** this is the first algorithm needing a new render path and new step vocabulary. Snapshots are stored per step (digit arrays), which costs memory on search-heavy puzzles, but trace generation happens up front and replays deterministically, consistent with the existing model.
+
+**Testing:** TDD throughout. Solver tests cover the contract, a forced single-cell solve with zero guesses, snapshot/solvedBoard consistency, the classic puzzle cross-checked against `solvePuzzle`, and a search-heavy puzzle (AI Escargot) that engages guesses and contradictions. Visualizer tests cover trace selection, snapshot/board/elimination updates, `cellCandidates`, algorithm-aware stat labels, and reset clearing. The smoke test selects the algorithm, asserts pencil marks render, and finishes to a solved board.
+
+**Cache update:** Bumped service worker cache from `sudoku-v23` to `sudoku-v24` and updated the six `?v=` query strings in `index.html` from `?v=20260525-mrv` to `?v=20260525-cp`.
