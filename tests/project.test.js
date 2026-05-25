@@ -24,6 +24,7 @@ assert.ok(readme.includes('Sudoku Solver Visualizer'), 'README describes the vis
 assert.ok(readme.includes('Finish Now'), 'README documents Finish Now');
 assert.ok(!readme.includes('3 mistakes ends the game'), 'README no longer describes old mistake flow');
 assert.ok(!readme.includes('4 difficulty levels'), 'README no longer describes old Expert mode flow');
+assert.ok(readme.includes('Constraint Propagation'), 'README documents the constraint propagation algorithm');
 
 const agents = read('AGENTS.md');
 assert.ok(agents.includes('Sudoku Solver Visualizer'), 'AGENTS guide describes the visualizer');

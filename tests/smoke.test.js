@@ -126,6 +126,20 @@ async function main() {
         cells.filter(cell => cell.textContent.trim()).length
       );
       assert.ok(resetFilledCells < 81, 'Reset restores the unsolved layout');
+
+      // constraint propagation flow: pencil marks appear, then board solves
+      await page.selectOption('select.algo-select', 'constraint');
+      await page.getByText('Select an algorithm and run the solver.').waitFor();
+      await page.getByRole('button', { name: 'Run Algorithm' }).click();
+      await page.waitForFunction(() =>
+        [...document.querySelectorAll('.cell-candidate')].some(el => el.textContent.trim() !== '')
+      );
+      await page.getByRole('button', { name: 'Finish Now' }).click();
+      await page.getByText('Solved by Constraint Propagation.').waitFor();
+      const cpFilledCells = await page.locator('.sudoku-cell').evaluateAll(cells =>
+        cells.filter(cell => cell.textContent.trim()).length
+      );
+      assert.strictEqual(cpFilledCells, 81, 'Constraint Propagation fills every cell after Finish Now');
       assert.deepStrictEqual(errors, [], 'browser console has no errors');
     } finally {
       await browser.close();
