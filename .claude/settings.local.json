@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(py --version)",
+      "Bash(npx --version)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(npm test *)",
+      "Bash(npm run *)",
+      "Bash(powershell -NoProfile -Command \"\\(Get-Content implementation-notes.md | Measure-Object -Line\\).Lines\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
+    ]
+  }
+}
