@@ -6,17 +6,19 @@
   root.PLAYBACK_SPEEDS = api.PLAYBACK_SPEEDS;
   root.sudokuGame = api.sudokuGame;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function createVisualizerModule(solver, generator) {
-  const { createBacktrackingTrace, createMrvTrace } = solver;
+  const { createBacktrackingTrace, createMrvTrace, createConstraintPropagationTrace } = solver;
   const { generateTestPuzzle } = generator;
 
   const TRACE_BUILDERS = {
     backtracking: createBacktrackingTrace,
     mrv: createMrvTrace,
+    constraint: createConstraintPropagationTrace,
   };
 
   const ALGORITHM_LABELS = {
     backtracking: 'Backtracking DFS',
     mrv: 'Backtracking + MRV',
+    constraint: 'Constraint Propagation',
   };
 
   // Base step delay: smooth animation at 1x, scales by integer factors
@@ -46,6 +48,9 @@
       _interval: null,
       placedCount: 0,
       backtrackedCount: 0,
+      eliminationCount: 0,
+      guessCount: 0,
+      currentSnapshot: null,
       _runStartTime: null,
       _elapsedMs: 0,
       selectedAlgorithm: 'backtracking',
@@ -74,6 +79,9 @@
             this.solvedBoard = null;
             this.placedCount = 0;
             this.backtrackedCount = 0;
+            this.eliminationCount = 0;
+            this.guessCount = 0;
+            this.currentSnapshot = null;
             this._runStartTime = null;
             this._elapsedMs = 0;
             this.status = 'ready';
@@ -115,6 +123,11 @@
           this.board = this.initialBoard.map(row => [...row]);
           this.stepIndex = 0;
           this.currentStep = null;
+          this.placedCount = 0;
+          this.backtrackedCount = 0;
+          this.eliminationCount = 0;
+          this.guessCount = 0;
+          this.currentSnapshot = null;
         } else {
           this._runStartTime = Date.now();
         }
@@ -150,6 +163,7 @@
           this._stopTimer();
           this._elapsedMs += remainingStepCount * this.playbackDelay();
           this.board = trace.solvedBoard.map(row => [...row]);
+          this.currentSnapshot = null;
           this.stepIndex = trace.steps.length;
           this.currentStep = null;
           this.status = 'solved';
@@ -167,6 +181,9 @@
         this.solvedBoard = null;
         this.placedCount = 0;
         this.backtrackedCount = 0;
+        this.eliminationCount = 0;
+        this.guessCount = 0;
+        this.currentSnapshot = null;
         this._runStartTime = null;
         this._elapsedMs = 0;
         this.status = 'ready';
@@ -198,6 +215,7 @@
             row: r,
             col: c,
             value,
+            candidates: this.cellCandidates(r, c),
           }))
         );
       },
@@ -212,6 +230,15 @@
         if (this.status === 'running' && this.currentStep?.type === 'backtrack') {
           return `Backtracking from row ${this.currentStep.row + 1}, column ${this.currentStep.col + 1}.`;
         }
+        if (this.status === 'running' && this.currentStep?.type === 'propagate') {
+          return `Propagating from row ${this.currentStep.row + 1}, column ${this.currentStep.col + 1}.`;
+        }
+        if (this.status === 'running' && this.currentStep?.type === 'guess') {
+          return `Guessing ${this.currentStep.value} at row ${this.currentStep.row + 1}, column ${this.currentStep.col + 1}.`;
+        }
+        if (this.status === 'running' && this.currentStep?.type === 'contradiction') {
+          return `Contradiction at row ${this.currentStep.row + 1}, column ${this.currentStep.col + 1}, backtracking.`;
+        }
         if (this.status === 'paused') return 'Solver paused.';
         if (this.status === 'solved') return `Solved by ${ALGORITHM_LABELS[this.selectedAlgorithm] || 'the solver'}.`;
         return 'Preparing solver.';
@@ -221,6 +248,7 @@
         const badges = {
           backtracking: '⬡ Backtracking',
           mrv: '⬡ Backtracking + MRV',
+          constraint: '⬡ Constraint Propagation',
         };
         return badges[this.selectedAlgorithm] || this.selectedAlgorithm;
       },
@@ -234,6 +262,7 @@
         const labels = {
           backtracking: 'Backtracking DFS Visualizer',
           mrv: 'Backtracking + MRV Visualizer',
+          constraint: 'Constraint Propagation Visualizer',
         };
         return labels[this.selectedAlgorithm] || 'Algorithm Visualizer';
       },
@@ -244,6 +273,41 @@
 
       isBacktracked(row, col) {
         return this.isCurrentCell(row, col) && this.currentStep?.type === 'backtrack';
+      },
+
+      cellCandidates(row, col) {
+        if (!this.currentSnapshot) return null;
+        const cell = this.currentSnapshot[row]?.[col];
+        if (!cell || cell.length <= 1) return null;
+        return cell;
+      },
+
+      isPlacingCell(row, col) {
+        return this.isCurrentCell(row, col) && (this.currentStep?.type === 'place' || this.currentStep?.type === 'propagate');
+      },
+
+      isGuessCell(row, col) {
+        return this.isCurrentCell(row, col) && this.currentStep?.type === 'guess';
+      },
+
+      isContradictionCell(row, col) {
+        return this.isCurrentCell(row, col) && this.currentStep?.type === 'contradiction';
+      },
+
+      statLabelPrimary() {
+        return this.selectedAlgorithm === 'constraint' ? '✦ Eliminations' : '✦ Placed';
+      },
+
+      statLabelSecondary() {
+        return this.selectedAlgorithm === 'constraint' ? '↯ Guesses' : '↩ Backtracks';
+      },
+
+      statValuePrimary() {
+        return this.selectedAlgorithm === 'constraint' ? this.eliminationCount : this.placedCount;
+      },
+
+      statValueSecondary() {
+        return this.selectedAlgorithm === 'constraint' ? this.guessCount : this.backtrackedCount;
       },
 
       cellKind(row, col) {
@@ -259,11 +323,19 @@
         }
 
         const step = this.steps[this.stepIndex];
-        if (step.type === 'place') this.placedCount++;
-        else this.backtrackedCount++;
-        const nextRow = [...this.board[step.row]];
-        nextRow[step.col] = step.type === 'place' ? step.value : 0;
-        this.board = this.board.map((row, index) => index === step.row ? nextRow : row);
+        if (step.type === 'place' || step.type === 'backtrack') {
+          if (step.type === 'place') this.placedCount++;
+          else this.backtrackedCount++;
+          const nextRow = [...this.board[step.row]];
+          nextRow[step.col] = step.type === 'place' ? step.value : 0;
+          this.board = this.board.map((row, index) => index === step.row ? nextRow : row);
+        } else {
+          if (step.type === 'propagate') this.eliminationCount += step.eliminated.length;
+          else if (step.type === 'guess') this.guessCount++;
+          this.currentSnapshot = step.snapshot;
+          this.board = step.snapshot.map(row => row.map(cell => cell.length === 1 ? cell[0] : 0));
+        }
+
         this.currentStep = step;
         this.stepIndex++;
         if (this.stepIndex >= this.steps.length) {
@@ -299,6 +371,7 @@
         this._stopPlayback();
         this._stopTimer();
         if (this.solvedBoard) this.board = this.solvedBoard.map(row => [...row]);
+        this.currentSnapshot = null;
         this.status = 'solved';
       },
     };

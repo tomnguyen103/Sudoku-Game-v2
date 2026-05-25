@@ -322,6 +322,73 @@ assert.strictEqual(switchGame.status, 'ready', 'setAlgorithm returns the visuali
 
 console.log('All visualizer algorithm-selection tests passed.');
 
+// constraint propagation visualizer integration
+const cpRunGame = sudokuGame();
+cpRunGame.initialBoard = unsolved.map(row => [...row]);
+cpRunGame.board = unsolved.map(row => [...row]);
+cpRunGame.locked = Array.from({ length: 9 }, () => Array(9).fill(false));
+cpRunGame.selectedAlgorithm = 'constraint';
+cpRunGame.runSolver();
+clearInterval(cpRunGame._interval);
+assert.deepStrictEqual(
+  cpRunGame.steps.map(s => s.type),
+  createConstraintPropagationTrace(unsolved).steps.map(s => s.type),
+  'runSolver builds the constraint propagation trace when CP is selected'
+);
+
+// applying a propagate step updates the snapshot, board, and elimination count
+const cpApplyGame = sudokuGame();
+cpApplyGame.initialBoard = unsolved.map(row => [...row]);
+cpApplyGame.board = unsolved.map(row => [...row]);
+cpApplyGame.locked = Array.from({ length: 9 }, () => Array(9).fill(false));
+cpApplyGame.selectedAlgorithm = 'constraint';
+cpApplyGame.steps = createConstraintPropagationTrace(unsolved).steps;
+cpApplyGame.stepIndex = 0;
+cpApplyGame.status = 'running';
+const firstPropagate = cpApplyGame.steps.findIndex(s => s.type === 'propagate');
+for (let i = 0; i <= firstPropagate; i++) cpApplyGame._applyNextStep();
+assert.ok(cpApplyGame.currentSnapshot, 'applying a CP step sets currentSnapshot');
+assert.ok(cpApplyGame.eliminationCount > 0, 'propagate steps increment the elimination count');
+
+// cellCandidates returns multi-candidate digit arrays and null for solved cells
+const snap = createConstraintPropagationTrace(unsolved).steps[0].snapshot;
+const cpCandGame = sudokuGame();
+cpCandGame.currentSnapshot = snap;
+let foundMulti = false, foundSingle = false;
+for (let r = 0; r < 9 && !(foundMulti && foundSingle); r++) {
+  for (let c = 0; c < 9; c++) {
+    if (snap[r][c].length > 1) { assert.deepStrictEqual(cpCandGame.cellCandidates(r, c), snap[r][c], 'cellCandidates returns the candidate digits'); foundMulti = true; }
+    else if (snap[r][c].length === 1) { assert.strictEqual(cpCandGame.cellCandidates(r, c), null, 'cellCandidates returns null for solved cells'); foundSingle = true; }
+  }
+}
+assert.ok(foundMulti, 'snapshot has at least one multi-candidate cell to verify');
+
+// stat labels and values are algorithm-aware
+const cpLabelGame = sudokuGame();
+cpLabelGame.selectedAlgorithm = 'backtracking';
+assert.strictEqual(cpLabelGame.statLabelPrimary().includes('Placed'), true, 'backtracking primary label is Placed');
+assert.strictEqual(cpLabelGame.statLabelSecondary().includes('Backtracks'), true, 'backtracking secondary label is Backtracks');
+cpLabelGame.selectedAlgorithm = 'constraint';
+cpLabelGame.eliminationCount = 12;
+cpLabelGame.guessCount = 3;
+assert.strictEqual(cpLabelGame.statLabelPrimary().includes('Eliminations'), true, 'CP primary label is Eliminations');
+assert.strictEqual(cpLabelGame.statLabelSecondary().includes('Guesses'), true, 'CP secondary label is Guesses');
+assert.strictEqual(cpLabelGame.statValuePrimary(), 12, 'CP primary value is the elimination count');
+assert.strictEqual(cpLabelGame.statValueSecondary(), 3, 'CP secondary value is the guess count');
+
+// resetPuzzle clears CP-specific state
+const cpResetGame = sudokuGame();
+cpResetGame.initialBoard = unsolved.map(row => [...row]);
+cpResetGame.currentSnapshot = snap;
+cpResetGame.eliminationCount = 9;
+cpResetGame.guessCount = 2;
+cpResetGame.resetPuzzle();
+assert.strictEqual(cpResetGame.currentSnapshot, null, 'resetPuzzle clears currentSnapshot');
+assert.strictEqual(cpResetGame.eliminationCount, 0, 'resetPuzzle clears eliminationCount');
+assert.strictEqual(cpResetGame.guessCount, 0, 'resetPuzzle clears guessCount');
+
+console.log('All constraint propagation visualizer tests passed.');
+
 const { generateSolution, shuffleBoard, removeClues } = require('../game.js');
 
 // generateSolution
