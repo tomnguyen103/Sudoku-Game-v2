@@ -316,6 +316,286 @@
     return { solved: true, steps, solvedBoard };
   }
 
+  function createHumanLogicTrace(board) {
+    return createHumanLogicTraceWithStrategies(board, { v2: false });
+  }
+
+  function createHumanLogicV2Trace(board) {
+    return createHumanLogicTraceWithStrategies(board, { v2: true });
+  }
+
+  function createHumanLogicTraceWithStrategies(board, options) {
+    if (!hasValidGivens(board)) {
+      return { solved: false, steps: [], solvedBoard: null };
+    }
+
+    const ALL = 0b111111111;
+    const BIT = d => 1 << (d - 1);
+    const popcount = m => { let n = 0; while (m) { m &= m - 1; n++; } return n; };
+    const digitsOf = m => { const out = []; for (let d = 1; d <= 9; d++) if (m & BIT(d)) out.push(d); return out; };
+    const lowestDigit = m => digitsOf(m)[0] || 0;
+    const keyOf = m => digitsOf(m).join('');
+    const ROW = i => Math.floor(i / 9);
+    const COL = i => i % 9;
+    const BOX = i => Math.floor(ROW(i) / 3) * 3 + Math.floor(COL(i) / 3);
+    const at = i => ({ row: ROW(i), col: COL(i) });
+
+    const units = [];
+    const unitMeta = [];
+    for (let r = 0; r < 9; r++) units.push(Array.from({ length: 9 }, (_, c) => r * 9 + c));
+    for (let r = 0; r < 9; r++) unitMeta.push({ type: 'row', index: r });
+    for (let c = 0; c < 9; c++) units.push(Array.from({ length: 9 }, (_, r) => r * 9 + c));
+    for (let c = 0; c < 9; c++) unitMeta.push({ type: 'column', index: c });
+    for (let br = 0; br < 3; br++) {
+      for (let bc = 0; bc < 3; bc++) {
+        const unit = [];
+        for (let dr = 0; dr < 3; dr++) for (let dc = 0; dc < 3; dc++) unit.push((br * 3 + dr) * 9 + bc * 3 + dc);
+        units.push(unit);
+        unitMeta.push({ type: 'box', index: br * 3 + bc });
+      }
+    }
+
+    const cands = new Array(81).fill(0);
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        const value = board[r][c];
+        if (value) {
+          cands[r * 9 + c] = BIT(value);
+        } else {
+          let mask = 0;
+          for (let d = 1; d <= 9; d++) if (isValid(board, r, c, d)) mask |= BIT(d);
+          if (mask === 0) return { solved: false, steps: [], solvedBoard: null };
+          cands[r * 9 + c] = mask;
+        }
+      }
+    }
+
+    const steps = [];
+    const toSnapshot = () =>
+      Array.from({ length: 9 }, (_, r) => Array.from({ length: 9 }, (_, c) => digitsOf(cands[r * 9 + c])));
+    const solvedCells = cands.map((_, i) => board[ROW(i)][COL(i)] !== 0);
+
+    function removeFromPeers(cell, value) {
+      const r = ROW(cell), c = COL(cell);
+      const boxR = Math.floor(r / 3) * 3, boxC = Math.floor(c / 3) * 3;
+      const peers = new Set();
+      for (let k = 0; k < 9; k++) { peers.add(r * 9 + k); peers.add(k * 9 + c); }
+      for (let dr = 0; dr < 3; dr++) for (let dc = 0; dc < 3; dc++) peers.add((boxR + dr) * 9 + boxC + dc);
+      peers.delete(cell);
+      const eliminated = [];
+      for (const peer of peers) {
+        if (popcount(cands[peer]) > 1 && (cands[peer] & BIT(value))) {
+          cands[peer] &= ~BIT(value);
+          eliminated.push({ ...at(peer), value });
+        }
+      }
+      return eliminated;
+    }
+
+    function place(cell, value, strategy, reason) {
+      cands[cell] = BIT(value);
+      solvedCells[cell] = true;
+      const eliminated = removeFromPeers(cell, value);
+      steps.push({ type: 'human-place', strategy, reason, ...at(cell), value, eliminated, snapshot: toSnapshot() });
+      return true;
+    }
+
+    function applyNakedSingle() {
+      for (let i = 0; i < 81; i++) {
+        if (!solvedCells[i] && popcount(cands[i]) === 1) {
+          return place(i, lowestDigit(cands[i]), 'Naked Single', 'This cell has only one candidate.');
+        }
+      }
+      return false;
+    }
+
+    function applyHiddenSingle() {
+      for (let unitIndex = 0; unitIndex < units.length; unitIndex++) {
+        const unit = units[unitIndex];
+        for (let d = 1; d <= 9; d++) {
+          const places = unit.filter(i => cands[i] & BIT(d));
+          if (places.length === 1 && !solvedCells[places[0]] && popcount(cands[places[0]]) > 1) {
+            const meta = unitMeta[unitIndex];
+            return place(places[0], d, 'Hidden Single', `This digit has only one possible cell in this ${meta.type}.`);
+          }
+        }
+      }
+      return false;
+    }
+
+    function applyHiddenPair() {
+      for (let unitIndex = 0; unitIndex < units.length; unitIndex++) {
+        const unit = units[unitIndex];
+        const positions = new Map();
+        for (let d = 1; d <= 9; d++) {
+          const places = unit.filter(i => (cands[i] & BIT(d)) && popcount(cands[i]) > 1);
+          if (places.length === 2) {
+            const key = places.join(',');
+            if (!positions.has(key)) positions.set(key, []);
+            positions.get(key).push(d);
+          }
+        }
+        for (const [key, digits] of positions) {
+          if (digits.length < 2) continue;
+          const cells = key.split(',').map(Number);
+          const pairDigits = digits.slice(0, 2);
+          const pairMask = pairDigits.reduce((mask, d) => mask | BIT(d), 0);
+          const eliminated = [];
+          for (const cell of cells) {
+            for (const value of digitsOf(cands[cell] & ~pairMask)) {
+              cands[cell] &= ~BIT(value);
+              eliminated.push({ ...at(cell), value });
+            }
+          }
+          if (eliminated.length) {
+            const meta = unitMeta[unitIndex];
+            steps.push({
+              type: 'human-eliminate',
+              strategy: 'Hidden Pair',
+              value: pairDigits,
+              unit: meta,
+              reason: `${pairDigits.join(' and ')} can only appear in the same two cells in this ${meta.type}.`,
+              cells: cells.map(at),
+              eliminated,
+              snapshot: toSnapshot(),
+            });
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    function applyPointingPairTriple() {
+      for (let box = 0; box < 9; box++) {
+        const unit = units[18 + box];
+        for (let value = 1; value <= 9; value++) {
+          const places = unit.filter(i => (cands[i] & BIT(value)) && popcount(cands[i]) > 1);
+          if (places.length < 2) continue;
+
+          const sameRow = places.every(i => ROW(i) === ROW(places[0]));
+          const sameCol = places.every(i => COL(i) === COL(places[0]));
+          if (!sameRow && !sameCol) continue;
+
+          const line = sameRow ? { type: 'row', index: ROW(places[0]) } : { type: 'column', index: COL(places[0]) };
+          const lineCells = sameRow ? units[line.index] : units[9 + line.index];
+          const eliminated = [];
+          for (const cell of lineCells) {
+            if (BOX(cell) === box || popcount(cands[cell]) <= 1 || !(cands[cell] & BIT(value))) continue;
+            cands[cell] &= ~BIT(value);
+            eliminated.push({ ...at(cell), value });
+          }
+          if (eliminated.length) {
+            steps.push({
+              type: 'human-eliminate',
+              strategy: 'Pointing Pair/Triple',
+              value,
+              unit: { type: 'box', index: box },
+              line,
+              reason: `All ${value} candidates in this box are locked into one ${line.type}.`,
+              cells: places.map(at),
+              eliminated,
+              snapshot: toSnapshot(),
+            });
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    function applyBoxLineReduction() {
+      for (let unitIndex = 0; unitIndex < 18; unitIndex++) {
+        const unit = units[unitIndex];
+        const line = unitIndex < 9 ? { type: 'row', index: unitIndex } : { type: 'column', index: unitIndex - 9 };
+        for (let value = 1; value <= 9; value++) {
+          const places = unit.filter(i => (cands[i] & BIT(value)) && popcount(cands[i]) > 1);
+          if (places.length < 2) continue;
+          const box = BOX(places[0]);
+          if (!places.every(i => BOX(i) === box)) continue;
+
+          const boxCells = units[18 + box];
+          const eliminated = [];
+          for (const cell of boxCells) {
+            const inLine = line.type === 'row' ? ROW(cell) === line.index : COL(cell) === line.index;
+            if (inLine || popcount(cands[cell]) <= 1 || !(cands[cell] & BIT(value))) continue;
+            cands[cell] &= ~BIT(value);
+            eliminated.push({ ...at(cell), value });
+          }
+          if (eliminated.length) {
+            steps.push({
+              type: 'human-eliminate',
+              strategy: 'Box-Line Reduction',
+              value,
+              unit: { type: 'box', index: box },
+              line,
+              reason: `All ${value} candidates in this ${line.type} are inside one box.`,
+              cells: places.map(at),
+              eliminated,
+              snapshot: toSnapshot(),
+            });
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    function applyNakedPair() {
+      for (const unit of units) {
+        const pairs = new Map();
+        for (const i of unit) {
+          if (popcount(cands[i]) === 2) {
+            const key = keyOf(cands[i]);
+            if (!pairs.has(key)) pairs.set(key, []);
+            pairs.get(key).push(i);
+          }
+        }
+        for (const [key, cells] of pairs) {
+          if (cells.length !== 2) continue;
+          const mask = cands[cells[0]];
+          const eliminated = [];
+          for (const i of unit) {
+            if (cells.includes(i) || popcount(cands[i]) <= 1) continue;
+            for (const value of digitsOf(mask)) {
+              if (cands[i] & BIT(value)) {
+                cands[i] &= ~BIT(value);
+                eliminated.push({ ...at(i), value });
+              }
+            }
+          }
+          if (eliminated.length) {
+            steps.push({
+              type: 'human-eliminate',
+              strategy: 'Naked Pair',
+              reason: `The pair {${key.split('').join(', ')}} is locked into two cells in this unit.`,
+              cells: cells.map(at),
+              eliminated,
+              snapshot: toSnapshot(),
+            });
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    let progress = true;
+    while (progress) {
+      progress = applyNakedSingle() ||
+        applyHiddenSingle() ||
+        applyNakedPair() ||
+        (options.v2 && (applyHiddenPair() || applyPointingPairTriple() || applyBoxLineReduction()));
+      if (cands.some(mask => mask === 0)) return { solved: false, steps, solvedBoard: null };
+    }
+
+    const solved = cands.every(mask => popcount(mask) === 1);
+    const solvedBoard = solved
+      ? Array.from({ length: 9 }, (_, r) => Array.from({ length: 9 }, (_, c) => lowestDigit(cands[r * 9 + c])))
+      : null;
+    return { solved, steps, solvedBoard };
+  }
+
   function countSolutions(board, limit = 2) {
     if (!hasValidGivens(board)) return 0;
 
@@ -354,6 +634,8 @@
     createBacktrackingTrace,
     createMrvTrace,
     createConstraintPropagationTrace,
+    createHumanLogicTrace,
+    createHumanLogicV2Trace,
     countSolutions,
   };
 });

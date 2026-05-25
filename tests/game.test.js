@@ -8,6 +8,8 @@ const {
   createBacktrackingTrace,
   createMrvTrace,
   createConstraintPropagationTrace,
+  createHumanLogicTrace,
+  createHumanLogicV2Trace,
   generateTestPuzzle,
   PLAYBACK_SPEEDS,
   sudokuGame,
@@ -227,6 +229,124 @@ assert.ok(cpSearch.steps.some(s => s.type === 'contradiction'), 'CP records cont
 
 console.log('All constraint propagation trace tests passed.');
 
+// human logic trace tests
+assert.deepStrictEqual(
+  createHumanLogicTrace(conflictedCompleteBoard),
+  { solved: false, steps: [], solvedBoard: null },
+  'human logic trace rejects conflicted layouts before playback'
+);
+
+const humanForced = createHumanLogicTrace(tracePuzzle);
+assert.strictEqual(humanForced.solved, true, 'human logic solves the single-empty-cell puzzle');
+assert.deepStrictEqual(humanForced.solvedBoard, tracePuzzleRef, 'human logic solved board matches reference solver');
+assert.ok(
+  humanForced.steps.some(s => s.type === 'human-place' && s.strategy === 'Naked Single' && s.row === 0 && s.col === 8 && s.value === 9),
+  'human logic records a named naked-single placement'
+);
+assert.strictEqual(tracePuzzle[0][8], 0, 'human logic does not mutate the input board');
+
+const nakedPairPuzzle = [
+  [0,0,0,4,5,6,7,8,9],
+  [0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0],
+  [3,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0],
+  [0,3,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0],
+  [0,0,0,0,0,0,0,0,0],
+];
+const humanPair = createHumanLogicTrace(nakedPairPuzzle);
+const pairStep = humanPair.steps.find(s => s.type === 'human-eliminate' && s.strategy === 'Naked Pair');
+assert.ok(pairStep, 'human logic records a naked-pair elimination step');
+assert.ok(
+  pairStep.cells.some(cell => cell.row === 0 && cell.col === 0) &&
+  pairStep.cells.some(cell => cell.row === 0 && cell.col === 1),
+  'naked-pair step identifies the two pair cells'
+);
+assert.ok(
+  pairStep.eliminated.some(e => e.value === 1 || e.value === 2),
+  'naked-pair step removes pair candidates from other cells in the unit'
+);
+assert.strictEqual(humanPair.solvedBoard, null, 'human logic can stop when named strategies cannot finish the puzzle');
+
+console.log('All human logic trace tests passed.');
+
+// human logic v2 trace tests
+assert.deepStrictEqual(
+  createHumanLogicV2Trace(conflictedCompleteBoard),
+  { solved: false, steps: [], solvedBoard: null },
+  'human logic v2 trace rejects conflicted layouts before playback'
+);
+
+const hiddenPairPuzzle = [
+  [0,0,0,4,5,6,7,8,9],
+  [0,0,4,0,0,0,0,0,0],
+  [0,0,5,0,0,0,0,0,0],
+  [4,0,0,0,0,0,0,0,0],
+  [5,0,0,0,0,0,0,0,0],
+  [6,0,0,0,0,0,0,0,0],
+  [7,0,0,0,0,0,0,0,0],
+  [8,0,0,0,0,0,0,0,0],
+  [9,0,0,0,0,0,0,0,0],
+];
+const hiddenPairTrace = createHumanLogicV2Trace(hiddenPairPuzzle);
+const hiddenPairStep = hiddenPairTrace.steps.find(s => s.type === 'human-eliminate' && s.strategy === 'Hidden Pair');
+assert.ok(hiddenPairStep, 'human logic v2 records a hidden-pair elimination step');
+assert.strictEqual(hiddenPairStep.cells.length, 2, 'hidden-pair step identifies exactly two pair cells');
+assert.ok(
+  hiddenPairStep.eliminated.every(e =>
+    hiddenPairStep.cells.some(cell => cell.row === e.row && cell.col === e.col)
+  ),
+  'hidden-pair step removes non-pair candidates from the pair cells'
+);
+
+const pointingPuzzle = [
+  [0,0,0,7,9,0,1,0,2],
+  [0,4,0,1,0,0,0,0,0],
+  [9,0,0,2,8,0,0,4,0],
+  [2,0,0,0,3,0,0,8,0],
+  [3,6,0,0,0,0,7,0,0],
+  [4,0,0,0,0,0,0,0,3],
+  [0,2,0,8,0,9,3,0,5],
+  [8,0,3,0,0,1,0,0,0],
+  [0,9,0,0,5,0,0,0,8],
+];
+const pointingTrace = createHumanLogicV2Trace(pointingPuzzle);
+const pointingStep = pointingTrace.steps.find(s => s.type === 'human-eliminate' && s.strategy === 'Pointing Pair/Triple');
+assert.ok(pointingStep, 'human logic v2 records a pointing pair/triple elimination step');
+assert.strictEqual(pointingStep.value, 5, 'pointing step records the locked digit');
+assert.deepStrictEqual(pointingStep.unit, { type: 'box', index: 3 }, 'pointing step records the source box');
+assert.deepStrictEqual(pointingStep.line, { type: 'column', index: 2 }, 'pointing step records the target column');
+assert.ok(
+  pointingStep.eliminated.some(e => e.col === 2 && e.value === 5),
+  'pointing step removes the digit from the rest of the column outside the box'
+);
+
+const boxLinePuzzle = [
+  [0,0,8,2,0,4,0,7,0],
+  [0,0,0,0,5,6,2,0,0],
+  [6,0,0,0,0,0,0,5,0],
+  [0,0,0,0,4,0,8,0,0],
+  [3,8,0,7,0,5,6,0,1],
+  [0,0,0,0,0,8,5,0,0],
+  [8,9,0,0,0,0,0,0,0],
+  [7,0,1,3,0,0,0,0,0],
+  [0,0,2,0,0,9,3,1,8],
+];
+const boxLineTrace = createHumanLogicV2Trace(boxLinePuzzle);
+const boxLineStep = boxLineTrace.steps.find(s => s.type === 'human-eliminate' && s.strategy === 'Box-Line Reduction');
+assert.ok(boxLineStep, 'human logic v2 records a box-line reduction elimination step');
+assert.strictEqual(boxLineStep.value, 9, 'box-line step records the locked digit');
+assert.deepStrictEqual(boxLineStep.line, { type: 'column', index: 7 }, 'box-line step records the source column');
+assert.deepStrictEqual(boxLineStep.unit, { type: 'box', index: 5 }, 'box-line step records the target box');
+assert.ok(
+  boxLineStep.eliminated.some(e => e.row >= 3 && e.row <= 5 && e.col !== 7 && e.value === 9),
+  'box-line step removes the digit from the rest of the box outside the column'
+);
+
+console.log('All human logic v2 trace tests passed.');
+
 // visualizer test puzzle tests
 const expectedEmptyRanges = {
   easy: [30, 40],
@@ -375,6 +495,46 @@ assert.strictEqual(cpLabelGame.statLabelPrimary().includes('Eliminations'), true
 assert.strictEqual(cpLabelGame.statLabelSecondary().includes('Guesses'), true, 'CP secondary label is Guesses');
 assert.strictEqual(cpLabelGame.statValuePrimary(), 12, 'CP primary value is the elimination count');
 assert.strictEqual(cpLabelGame.statValueSecondary(), 3, 'CP secondary value is the guess count');
+cpLabelGame.selectedAlgorithm = 'human';
+assert.strictEqual(cpLabelGame.statLabelPrimary().includes('Deductions'), true, 'human logic primary label is Deductions');
+assert.strictEqual(cpLabelGame.statLabelSecondary().includes('Eliminations'), true, 'human logic secondary label is Eliminations');
+
+const humanRunGame = sudokuGame();
+humanRunGame.initialBoard = unsolved.map(row => [...row]);
+humanRunGame.board = unsolved.map(row => [...row]);
+humanRunGame.locked = Array.from({ length: 9 }, () => Array(9).fill(false));
+humanRunGame.selectedAlgorithm = 'human';
+humanRunGame.runSolver();
+clearInterval(humanRunGame._interval);
+assert.deepStrictEqual(
+  humanRunGame.steps.map(s => s.type),
+  createHumanLogicTrace(unsolved).steps.map(s => s.type),
+  'runSolver builds the human logic trace when human logic is selected'
+);
+
+const humanV2RunGame = sudokuGame();
+humanV2RunGame.initialBoard = unsolved.map(row => [...row]);
+humanV2RunGame.board = unsolved.map(row => [...row]);
+humanV2RunGame.locked = Array.from({ length: 9 }, () => Array(9).fill(false));
+humanV2RunGame.selectedAlgorithm = 'human-v2';
+humanV2RunGame.runSolver();
+clearInterval(humanV2RunGame._interval);
+assert.deepStrictEqual(
+  humanV2RunGame.steps.map(s => s.type),
+  createHumanLogicV2Trace(unsolved).steps.map(s => s.type),
+  'runSolver builds the human logic v2 trace when human logic v2 is selected'
+);
+
+const humanStuckGame = sudokuGame();
+humanStuckGame.initialBoard = nakedPairPuzzle.map(row => [...row]);
+humanStuckGame.board = nakedPairPuzzle.map(row => [...row]);
+humanStuckGame.locked = Array.from({ length: 9 }, () => Array(9).fill(false));
+humanStuckGame.selectedAlgorithm = 'human';
+humanStuckGame.runSolver();
+clearInterval(humanStuckGame._interval);
+while (humanStuckGame.status === 'running') humanStuckGame._applyNextStep();
+assert.strictEqual(humanStuckGame.status, 'stuck', 'human logic marks the visualizer stuck when strategies cannot finish');
+assert.ok(humanStuckGame.statusText().includes('Human Logic Solver is stuck'), 'stuck status explains that human logic needs more strategies');
 
 // resetPuzzle clears CP-specific state
 const cpResetGame = sudokuGame();

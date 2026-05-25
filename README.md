@@ -1,6 +1,6 @@
 # Sudoku Solver Visualizer
 
-A browser-based visualizer for Sudoku backtracking. The app generates a valid Easy, Medium, or Hard Sudoku puzzle, shows the unsolved layout, and then animates how a backtracking solver places values, hits dead ends, and backtracks. Two solving algorithms are selectable — plain depth-first backtracking and a faster Minimum Remaining Values (MRV) variant — so you can watch and compare how each one searches.
+A browser-based visualizer for Sudoku solving algorithms. The app generates a valid Easy, Medium, or Hard Sudoku puzzle, shows the unsolved layout, and then animates how different solvers search, propagate constraints, or apply human-readable deductions.
 
 This project is a static web app deployed from the repository root. It has no backend, no bundler, and no build output directory.
 
@@ -50,7 +50,7 @@ The app can also be opened from an existing local static server. Avoid opening `
 
 1. Choose `Easy`, `Medium`, or `Hard`.
 2. Review the generated starting layout.
-3. Choose the algorithm: `Backtracking DFS` or `Backtracking + MRV`.
+3. Choose the algorithm: `Backtracking DFS`, `Backtracking + MRV`, `Constraint Propagation`, `Human Logic Solver`, or `Human Logic Solver v2`.
 4. Choose playback speed: `1x`, `2x`, `5x`, or `10x`.
 5. Click `Run Algorithm` to animate the trace.
 6. Use `Pause`, `Finish Now`, `Reset`, or `New Puzzle` as needed.
@@ -62,7 +62,7 @@ The app can also be opened from an existing local static server. Avoid opening `
 | Control | Behavior |
 |---|---|
 | Difficulty | Generates a new puzzle when changed. |
-| Algorithm | Selects the visualized solving algorithm: Backtracking DFS or Backtracking + MRV. Switching resets the current trace. |
+| Algorithm | Selects the visualized solving algorithm. Switching resets the current trace. |
 | Run Algorithm | Builds and replays the backtracking trace for the current puzzle. |
 | Speed | Changes playback delay for the visualizer. |
 | Pause | Freezes animation and solving time. |
@@ -93,7 +93,7 @@ Generation starts from a complete solved board, shuffles it, removes clues, and 
 
 ## Solving Algorithms
 
-The app ships with two selectable algorithms. Both are recursive backtracking solvers that share the same validity rules (a digit is legal only if it is absent from its row, column, and 3x3 box) and the same `place` / `backtrack` step vocabulary, so they animate with identical visuals. The only difference is the order in which they choose the next cell to fill — and that order is what makes one dramatically faster on hard puzzles.
+The app ships with five selectable algorithms. The backtracking variants share the same validity rules and `place` / `backtrack` step vocabulary. Constraint Propagation and the Human Logic modes use candidate snapshots so the visualizer can show pencil marks shrinking as deductions happen.
 
 The UI does not mutate the DOM live, one step at a time. Each algorithm first produces a complete, deterministic trace of placements and backtracks, and the visualizer replays that trace at the selected speed. This keeps pause, reset, finish-now, and testing behavior predictable.
 
@@ -109,9 +109,17 @@ Backtracking + MRV adds the **Minimum Remaining Values** heuristic to the same d
 
 Constraint propagation treats every empty cell as a set of candidate digits and repeatedly applies two rules to fixpoint: a *naked single* (a cell with one remaining candidate is solved, and that digit is struck from its 20 peers) and a *hidden single* (if a digit has only one possible cell left in a row, column, or box, it must go there). Each assignment cascades — one placement can ripple eliminations across the board, and easy puzzles often solve with no guessing at all. When propagation stalls on harder puzzles, the solver falls back to a fail-first depth-first search: it guesses the most constrained cell, propagates, and backtracks on contradiction. This is the approach Peter Norvig describes in "Solving Every Sudoku Puzzle." In the visualizer, each empty cell shows its remaining candidates as pencil marks that shrink as constraints propagate.
 
+### Human Logic Solver
+
+The Human Logic Solver applies named Sudoku techniques instead of guessing. It starts from candidate pencil marks and repeatedly looks for explainable deductions: naked singles, hidden singles, and naked pairs. Each step records the strategy name, affected cells, eliminated candidates, and a candidate snapshot. Unlike Constraint Propagation, this mode intentionally stops when its current human techniques cannot make more progress; it is a tutor-style solver, not a guaranteed fastest solver.
+
+### Human Logic Solver v2
+
+Human Logic Solver v2 keeps the original human mode intact and adds intermediate techniques: hidden pairs, pointing pairs/triples, and box-line reduction. These strategies still avoid guessing, but they can remove candidates by reasoning about how rows, columns, and boxes constrain each other. The mode remains explainable and can still stop when it needs techniques beyond the current set.
+
 ## Algorithm Comparison
 
-The app currently implements algorithms #1, #2, and #3 below. The table compares them with other algorithms that can solve a 9x9 Sudoku, as a reference for possible future additions. Because this app is a *visualizer*, an algorithm's value here depends not only on speed but on whether its steps produce a watchable cell-by-cell trace.
+The app currently implements algorithms #1, #2, #3, and two versions of #6 below. The table compares them with other algorithms that can solve a 9x9 Sudoku, as a reference for possible future additions. Because this app is a *visualizer*, an algorithm's value here depends not only on speed but on whether its steps produce a watchable cell-by-cell trace.
 
 | # | Name | Description | Method | Time complexity | Solving time (typical 9x9) | Difficulty rank (easy to hard) |
 |---|------|-------------|--------|-----------------|----------------------------|---------------------------------|
@@ -120,7 +128,7 @@ The app currently implements algorithms #1, #2, and #3 below. The table compares
 | 3 | **Constraint propagation + search** (Norvig) *(current)* | Eliminate candidates (naked/hidden singles) until stuck, then MRV search | AC-3-style propagation + DFS | Near-linear on easy, low-poly on hard | sub-ms to low ms | Easy: solved by propagation alone - Hard: fast |
 | 4 | **Dancing Links / DLX** (Algorithm X) | Model as exact-cover matrix; cover/uncover columns via linked lists | Knuth's Algorithm X | Exponential worst case, extremely fast in practice | microseconds to ms | Uniformly very fast at all difficulties |
 | 5 | **SAT solver** | Encode rules as boolean CNF, hand to a SAT engine | Reduction + DPLL/CDCL | NP-complete; solver-dependent | ms (incl. encoding overhead) | Uniformly fast; overkill for 9x9 |
-| 6 | **Human logic strategies** | Apply named techniques: naked/hidden singles, pairs, X-wing | Rule-based deduction | Polynomial per pass | ms, but cannot finish puzzles needing guessing | Easy: solves fully - Hard: stalls without backtracking fallback |
+| 6 | **Human logic strategies** *(current)* | Apply named techniques: singles, pairs, pointing, and box-line rules | Rule-based deduction | Polynomial per pass | ms, but cannot finish puzzles needing guessing | Easy: often solves or progresses - Hard: can stall without fallback |
 | 7 | **Simulated annealing / genetic** | Random fill, swap cells to minimize conflicts | Stochastic optimization | No guarantee; probabilistic | seconds; may not converge | Inconsistent; worse on hard, can fail |
 
 ### Why these three are implemented
@@ -132,6 +140,8 @@ Backtracking DFS (#1) is the project's original baseline. Backtracking + MRV (#2
 - The contrast with naive backtracking is dramatic and educational on Hard puzzles.
 
 Constraint Propagation (#3) was added because it is visually distinct from the two backtracking variants: instead of filling one cell at a time, it shows each empty cell's candidate set (pencil marks) shrinking and rippling as naked and hidden singles propagate, then falls back to a fail-first search only when propagation stalls. This required a new render path and new step vocabulary (`propagate`, `guess`, `contradiction`), but it makes the deduction process — not just the search — watchable.
+
+Human Logic (#6) was added next because it turns candidate changes into named, teachable deductions. The original mode stays intentionally small: naked singles, hidden singles, and naked pairs. Human Logic v2 adds hidden pairs, pointing pairs/triples, and box-line reduction while still avoiding guessing. X-wing remains a good future advanced strategy.
 
 The faster algorithms (DLX, SAT) remain future candidates rather than current features because their internal steps — column covering, clause propagation — do not map cleanly onto a 9x9 grid animation, so they would be opaque to watch.
 

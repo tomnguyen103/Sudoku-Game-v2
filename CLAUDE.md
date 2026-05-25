@@ -19,7 +19,7 @@ No bundler is required. `package.json` exists for repeatable local checks.
 ```text
 index.html              <- markup + Alpine x-data root + local scripts + PWA meta tags
 style.css               <- Sudoku grid borders, responsive board sizing, and compact mobile controls
-src/solver.js           <- validation, solvePuzzle, countSolutions, createBacktrackingTrace, createMrvTrace, createConstraintPropagationTrace
+src/solver.js           <- validation, solvePuzzle, countSolutions, and trace builders
 src/generator.js        <- generateSolution, shuffleBoard, removeClues, generateTestPuzzle
 src/visualizer.js       <- sudokuGame() Alpine state and playback controls
 game.js                 <- CommonJS compatibility export for tests
@@ -34,7 +34,7 @@ docs/release-checklist.md <- release checklist
 ## Key Decisions
 
 - **App mode:** pure solver visualizer. Manual Sudoku play, mistakes, undo, erase, timer, personal bests, and win/game-over overlays are intentionally removed.
-- **Selectable algorithm:** the Algorithm `<select>` chooses which solving algorithm the visualizer animates. Two exist today: `Backtracking DFS` (`createBacktrackingTrace`) and `Backtracking + MRV` (`createMrvTrace`, picks the empty cell with the fewest legal candidates each step). The visualizer maps `selectedAlgorithm` to a trace builder via `TRACE_BUILDERS` / `_buildTrace()`, used by both `runSolver` and `finishNow`. Both builders share the same `{ solved, steps, solvedBoard }` contract and `place`/`backtrack` step events, so no render changes are needed per algorithm. Changing the algorithm calls `setAlgorithm()`, which resets the current trace (it belongs to the previous algorithm) and returns to `ready`. A third algorithm, `Constraint Propagation` (`createConstraintPropagationTrace`, Norvig-style naked/hidden-single propagation with a fail-first DFS fallback), emits new step types — `propagate`, `guess`, `contradiction` — each carrying a `snapshot` (9x9 arrays of remaining candidate digits). The visualizer renders snapshots as pencil marks via `cellCandidates()`, tracks `eliminationCount`/`guessCount`, and relabels the two stat tiles per algorithm via `statLabelPrimary/Secondary` and `statValuePrimary/Secondary`. A README "Algorithm Comparison" table documents other candidate algorithms for future additions.
+- **Selectable algorithm:** the Algorithm `<select>` chooses which solving algorithm the visualizer animates: `Backtracking DFS`, `Backtracking + MRV`, `Constraint Propagation`, `Human Logic Solver`, or `Human Logic Solver v2`. The visualizer maps `selectedAlgorithm` to a trace builder via `TRACE_BUILDERS` / `_buildTrace()`, used by both `runSolver` and `finishNow`. All builders share the same `{ solved, steps, solvedBoard }` contract. Backtracking/MRV emit `place`/`backtrack`; Constraint Propagation emits `propagate`, `guess`, `contradiction`; Human Logic emits `human-place` and `human-eliminate` with named strategies. V1 includes Naked Single, Hidden Single, and Naked Pair. V2 adds Hidden Pair, Pointing Pair/Triple, and Box-Line Reduction. Snapshot-based algorithms carry a `snapshot` (9x9 arrays of remaining candidate digits), rendered as pencil marks via `cellCandidates()`. The stat tiles relabel per algorithm via `statLabelPrimary/Secondary` and `statValuePrimary/Secondary`.
 - **Current layout:** Easy / Medium / Hard load a generated test puzzle via `generateTestPuzzle(difficulty)`. The current layout stays fixed until difficulty changes or the user clicks `New Puzzle`.
 - **Responsive layout:** The desktop board grows to match the control/status column height. In stacked tablet/browser widths, the board and controls left-align with the title. On mobile (`max-width: 639px`), the board fills the full content width via `--sudoku-board-size: calc(100vw - 1rem)` (symmetric 8px gutters); controls compact below it. The board is intentionally width-driven, not height-driven — an earlier `svh`-based clamp shrank the board well below the screen width because real iOS Safari reduces `svh` with its chrome. Consequence: the controls may sit below the fold and require a short vertical scroll on phones (full-width board is prioritized over single-screen fit).
 - **Visualizer start:** layout generation happens before display, but the algorithm does not animate until `Run Algorithm`.
@@ -57,9 +57,14 @@ npm run test:smoke
 
 Before deploying, follow [`docs/release-checklist.md`](docs/release-checklist.md).
 
+## Documentation Rules
+
+- **Update `implementation-notes.md` while implementing anything.** Any feature, fix, workflow change, or notable tradeoff should be logged as part of the implementation work, not postponed until after the code is done.
+- **Before every GitHub push request, re-check `CLAUDE.md` and `implementation-notes.md`.** Update them first if the implementation, workflow, file structure, cache/deploy process, or key decisions changed.
+
 ## Pre-Push Checklist (required before every `git push`)
 
-1. **Update `implementation-notes.md`** — Log any decision, tradeoff, workaround, or change that wasn't in the original spec. Include: what changed, why, and what the tradeoff was. Use the existing section structure (date heading + bullet decisions).
+1. **Update `implementation-notes.md`** — Log any decision, tradeoff, workaround, or change that wasn't in the original spec. Include: what changed, why, and what the tradeoff was. Use the existing section structure (date heading + bullet decisions). This should already be maintained during implementation; still re-check it before pushing.
 
 2. **Update `CLAUDE.md`** — If anything in this file is now stale or missing (new files added, key decisions changed, workflow steps added), update it before pushing. This file is the source of truth for future sessions.
 

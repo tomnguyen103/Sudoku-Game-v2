@@ -322,3 +322,43 @@ The trace function copies the input board before solving so it does not mutate t
 **Testing:** TDD throughout. Solver tests cover the contract, a forced single-cell solve with zero guesses, snapshot/solvedBoard consistency, the classic puzzle cross-checked against `solvePuzzle`, and a search-heavy puzzle (AI Escargot) that engages guesses and contradictions. Visualizer tests cover trace selection, snapshot/board/elimination updates, `cellCandidates`, algorithm-aware stat labels, and reset clearing. The smoke test selects the algorithm, asserts pencil marks render, and finishes to a solved board.
 
 **Cache update:** Bumped service worker cache from `sudoku-v23` to `sudoku-v24` and updated the six `?v=` query strings in `index.html` from `?v=20260525-mrv` to `?v=20260525-cp`.
+
+### 2026-05-25 - Fourth selectable algorithm: Human Logic Solver
+
+**Context:** Added a tutor-style human logic algorithm after reviewing the researched algorithm list. DLX and SAT remain faster in practice, but their internal steps are opaque on a Sudoku board. Human logic is more valuable for this visualizer because each move can be labeled and explained.
+
+**Decision - Solver:** Added `createHumanLogicTrace(board)` in `src/solver.js`. It shares the same `{ solved, steps, solvedBoard }` contract and invalid-givens rejection as the other algorithms. Candidate state uses per-cell bit masks internally and each emitted step includes a 9x9 candidate snapshot for the UI.
+
+**Decision - Strategy set:** The first version implements naked singles, hidden singles, and naked pairs. It stops when these named strategies can no longer make progress. This is intentional: the mode demonstrates explainable human deductions rather than guaranteeing completion through guessing.
+
+**Decision - New step types:** `human-place` records a named placement plus peer eliminations. `human-eliminate` records candidate removals from a named pattern such as Naked Pair. Both step types include `strategy`, `reason`, `eliminated`, and `snapshot`.
+
+**Decision - Visualizer:** Added `Human Logic Solver` to the algorithm dropdown and trace builder map. The existing candidate-pencil render path is reused. Status text now shows the active strategy name, and the stat tiles show Deductions + Eliminations for human logic.
+
+**Testing:** Added solver tests for invalid boards, naked-single placement, no input mutation, and naked-pair eliminations. Added visualizer tests for human trace selection and human-specific stat labels. Browser smoke now selects Human Logic, waits for a named deduction, verifies pencil marks render, and pauses without console errors.
+
+**Cache update:** Bumped service worker cache from `sudoku-v24` to `sudoku-v25` and updated the six `?v=` query strings in `index.html` from `?v=20260525-cp` to `?v=20260525-human`.
+
+### 2026-05-25 - Human Logic Solver v2
+
+**Context:** Added a second human-logic option without replacing the original. The original `Human Logic Solver` remains the simpler teaching mode; `Human Logic Solver v2` extends it with intermediate strategies.
+
+**Decision - Solver:** Added `createHumanLogicV2Trace(board)` as a superset of `createHumanLogicTrace(board)`. Both use the same internal candidate-mask machinery and the same `human-place` / `human-eliminate` step vocabulary. V2 enables additional strategy passes after naked singles, hidden singles, and naked pairs.
+
+**Decision - New strategies:** V2 adds hidden pairs, pointing pairs/triples, and box-line reduction. Each emitted elimination step includes structured context (`unit`, `line`, `value`, `cells`, `eliminated`, `reason`, and `snapshot`) so future UI highlighting can show the source unit and affected row/column/box.
+
+**Decision - UI:** Added `Human Logic Solver v2` as a separate dropdown option (`human-v2`). The original `human` option is unchanged. V2 uses the same candidate pencil-mark renderer, status text, and Deductions / Eliminations stat labels as the original human mode.
+
+**Testing:** Added focused trace tests for hidden pair, pointing pair/triple, and box-line reduction using fixed boards that exercise each strategy. Added visualizer selection coverage and updated the browser smoke test to select and run the v2 dropdown option.
+
+**Cache update:** Bumped service worker cache from `sudoku-v25` to `sudoku-v26` and updated the six `?v=` query strings in `index.html` from `?v=20260525-human` to `?v=20260525-humanv2`.
+
+### 2026-05-25 - Documentation workflow rule
+
+**Context:** Before pushing the Human Logic changes, the project guide and implementation log were reviewed for stale guidance.
+
+**Decision - Implementation log discipline:** `CLAUDE.md` now explicitly requires updating `implementation-notes.md` while implementing anything, rather than treating it as a final cleanup step. This keeps the running decision log useful for future sessions.
+
+**Decision - Pre-push doc review:** `CLAUDE.md` now explicitly requires re-checking both `CLAUDE.md` and `implementation-notes.md` before every GitHub push request and updating them first when implementation, workflow, file structure, cache/deploy behavior, or key decisions changed.
+
+**Tradeoff:** This adds a small amount of process before each push, but it prevents the project guide and running notes from drifting behind the code.
