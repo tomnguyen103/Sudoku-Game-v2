@@ -188,7 +188,7 @@
     const ALL = 0b111111111;
     const BIT = d => 1 << (d - 1);
     const popcount = m => { let n = 0; while (m) { m &= m - 1; n++; } return n; };
-    const lowestDigit = m => { for (let d = 1; d <= 9; d++) if (m & BIT(d)) return d; return 0; };
+    const lowestDigit = m => { for (let d = 1; d <= 9; d++) if (m & BIT(d)) return d; return 0; }; // 0 = empty mask, unreachable post-solve
     const digitsOf = m => { const out = []; for (let d = 1; d <= 9; d++) if (m & BIT(d)) out.push(d); return out; };
 
     const ROW = i => Math.floor(i / 9);
@@ -224,6 +224,8 @@
         const { cell, value } = queue.shift();
         queued.delete(cell);
         if (!(cands[cell] & BIT(value))) return false; // value no longer possible here
+        // Locks the cell to value; any other candidates it held are dropped silently
+        // (not recorded in eliminated[]) since a wave records only peer eliminations.
         cands[cell] = BIT(value);
 
         const eliminated = [];
