@@ -268,3 +268,17 @@ The trace function copies the input board before solving so it does not mutate t
 **Verification:** Checked responsive dimensions at 390x844, 390x667, and 360x740. Each fit within one viewport with no horizontal overflow. Also checked the in-app browser width, where the title and board both start at the same x-coordinate.
 
 **Cache update:** Bumped service worker cache from `sudoku-v18` to `sudoku-v21`. Updated all 6 runtime query strings in `index.html` from `?v=20260524-finishtime` to `?v=20260524-responsive2`.
+
+### 2026-05-25 - Full-width mobile board (reverses one-viewport fit)
+
+**Issue observed:** On large phones (reported on iPhone 17 Pro Max), the puzzle grid did not extend to the left/right edges — it sat narrow with large side gaps while the control panels below it spanned full width.
+
+**Root cause:** The mobile board size was `clamp(12rem, calc(100svh - 29.25rem), calc(100vw - 1rem))`. The middle height-based term won the clamp on tall phones. Crucially, real iOS Safari reduces `svh` by its address bar + toolbar (a ~440x956 device exposes only ~766px of `svh`), so `100svh - 29.25rem` resolved to ~298px while the available width was ~424px. Headless/desktop browsers report the full height as `svh`, so this only reproduced on a real device or when the preview height was set to the post-chrome usable height (~766px).
+
+**Decision - Width-driven board:** Mobile board size is now `--sudoku-board-size: calc(100vw - 1rem)`, so the board always fills the content width (symmetric 8px gutters from the 0.5rem body padding) regardless of `svh`.
+
+**Tradeoff (reverses the 2026-05-24 decision):** This abandons the earlier "entire layout visible on one page" goal on phones. With the larger board, the controls now sit below the fold and require a short vertical scroll (page ~881px tall at a 766px usable viewport). The user explicitly prioritized a full-width board over the one-screen fit. No horizontal overflow at any phone width.
+
+**Verification:** Measured computed grid width via the browser preview at the post-chrome usable viewport. 440px wide: board 298px → 424px after fix (right gap 134px → 8px). 375px wide (iPhone SE): board 359px, symmetric 8px gutters, no horizontal overflow. `npm test` and `npm run test:smoke` pass.
+
+**Cache update:** Bumped service worker cache from `sudoku-v21` to `sudoku-v22`. Updated all 6 runtime query strings in `index.html` from `?v=20260524-responsive2` to `?v=20260525-mobilewidth`.

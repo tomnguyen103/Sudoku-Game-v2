@@ -231,7 +231,9 @@ button {
   }
 
   body .sudoku-grid {
-    --sudoku-board-size: clamp(12rem, calc(100svh - 29.25rem), calc(100vw - 1rem));
+    /* Fill the full content width on phones. svh-based sizing shrank the
+       board well below the screen width once Safari's chrome reduced svh. */
+    --sudoku-board-size: calc(100vw - 1rem);
     width: min(100%, var(--sudoku-board-size)) !important;
   }
 
