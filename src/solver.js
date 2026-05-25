@@ -117,6 +117,69 @@
     };
   }
 
+  function createMrvTrace(board) {
+    if (!hasValidGivens(board)) {
+      return { solved: false, steps: [], solvedBoard: null };
+    }
+
+    const working = board.map(row => [...row]);
+    const steps = [];
+
+    function candidatesFor(row, col) {
+      const list = [];
+      for (let value = 1; value <= 9; value++) {
+        if (isValid(working, row, col, value)) list.push(value);
+      }
+      return list;
+    }
+
+    // Minimum Remaining Values: choose the empty cell with the fewest legal
+    // candidates. Returns null when the board is full (solved).
+    function pickCell() {
+      let best = null;
+      let bestCount = 10;
+      for (let row = 0; row < 9; row++) {
+        for (let col = 0; col < 9; col++) {
+          if (working[row][col] !== 0) continue;
+          const count = candidatesFor(row, col).length;
+          if (count < bestCount) {
+            bestCount = count;
+            best = { row, col };
+            if (bestCount === 0) return best; // immediate dead end, stop early
+          }
+        }
+      }
+      return best;
+    }
+
+    function solve() {
+      const cell = pickCell();
+      if (!cell) return true; // no empty cells remain
+
+      const { row, col } = cell;
+      const candidates = candidatesFor(row, col);
+      if (candidates.length === 0) return false; // fail-first dead end
+
+      for (const value of candidates) {
+        working[row][col] = value;
+        steps.push({ type: 'place', row, col, value });
+
+        if (solve()) return true;
+
+        working[row][col] = 0;
+        steps.push({ type: 'backtrack', row, col, value: 0 });
+      }
+      return false;
+    }
+
+    const solved = solve();
+    return {
+      solved,
+      steps,
+      solvedBoard: solved ? working.map(row => [...row]) : null,
+    };
+  }
+
   function countSolutions(board, limit = 2) {
     if (!hasValidGivens(board)) return 0;
 
@@ -153,6 +216,7 @@
     hasValidGivens,
     isSolvableLayout,
     createBacktrackingTrace,
+    createMrvTrace,
     countSolutions,
   };
 });

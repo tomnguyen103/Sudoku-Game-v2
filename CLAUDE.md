@@ -19,7 +19,7 @@ No bundler is required. `package.json` exists for repeatable local checks.
 ```text
 index.html              <- markup + Alpine x-data root + local scripts + PWA meta tags
 style.css               <- Sudoku grid borders, responsive board sizing, and compact mobile controls
-src/solver.js           <- validation, solvePuzzle, countSolutions, createBacktrackingTrace
+src/solver.js           <- validation, solvePuzzle, countSolutions, createBacktrackingTrace, createMrvTrace
 src/generator.js        <- generateSolution, shuffleBoard, removeClues, generateTestPuzzle
 src/visualizer.js       <- sudokuGame() Alpine state and playback controls
 game.js                 <- CommonJS compatibility export for tests
@@ -34,6 +34,7 @@ docs/release-checklist.md <- release checklist
 ## Key Decisions
 
 - **App mode:** pure solver visualizer. Manual Sudoku play, mistakes, undo, erase, timer, personal bests, and win/game-over overlays are intentionally removed.
+- **Selectable algorithm:** the Algorithm `<select>` chooses which solving algorithm the visualizer animates. Two exist today: `Backtracking DFS` (`createBacktrackingTrace`) and `Backtracking + MRV` (`createMrvTrace`, picks the empty cell with the fewest legal candidates each step). The visualizer maps `selectedAlgorithm` to a trace builder via `TRACE_BUILDERS` / `_buildTrace()`, used by both `runSolver` and `finishNow`. Both builders share the same `{ solved, steps, solvedBoard }` contract and `place`/`backtrack` step events, so no render changes are needed per algorithm. Changing the algorithm calls `setAlgorithm()`, which resets the current trace (it belongs to the previous algorithm) and returns to `ready`. A README "Algorithm Comparison" table documents other candidate algorithms for future additions.
 - **Current layout:** Easy / Medium / Hard load a generated test puzzle via `generateTestPuzzle(difficulty)`. The current layout stays fixed until difficulty changes or the user clicks `New Puzzle`.
 - **Responsive layout:** The desktop board grows to match the control/status column height. In stacked tablet/browser widths, the board and controls left-align with the title. On mobile (`max-width: 639px`), the board fills the full content width via `--sudoku-board-size: calc(100vw - 1rem)` (symmetric 8px gutters); controls compact below it. The board is intentionally width-driven, not height-driven — an earlier `svh`-based clamp shrank the board well below the screen width because real iOS Safari reduces `svh` with its chrome. Consequence: the controls may sit below the fold and require a short vertical scroll on phones (full-width board is prioritized over single-screen fit).
 - **Visualizer start:** layout generation happens before display, but the algorithm does not animate until `Run Algorithm`.
@@ -75,5 +76,7 @@ Connect the GitHub repo to Netlify. No build output directory is needed; Netlify
 ## Documentation
 
 Implementation notes: [`implementation-notes.md`](implementation-notes.md)
+
+Algorithm explanations and comparison: the README "Solving Algorithms" and "Algorithm Comparison" sections ([`README.md`](README.md)) document each implemented algorithm and candidate future algorithms.
 
 Original design spec: [`docs/superpowers/specs/2026-05-23-sudoku-game-design.md`](docs/superpowers/specs/2026-05-23-sudoku-game-design.md)

@@ -282,3 +282,21 @@ The trace function copies the input board before solving so it does not mutate t
 **Verification:** Measured computed grid width via the browser preview at the post-chrome usable viewport. 440px wide: board 298px → 424px after fix (right gap 134px → 8px). 375px wide (iPhone SE): board 359px, symmetric 8px gutters, no horizontal overflow. `npm test` and `npm run test:smoke` pass.
 
 **Cache update:** Bumped service worker cache from `sudoku-v21` to `sudoku-v22`. Updated all 6 runtime query strings in `index.html` from `?v=20260524-responsive2` to `?v=20260525-mobilewidth`.
+
+### 2026-05-25 - Second selectable algorithm: Backtracking + MRV
+
+**Context:** The app previously visualized a single fixed algorithm (naive backtracking). Research compared seven Sudoku-solving algorithms (added as an "Algorithm Comparison" table in `README.md`). Backtracking + MRV (minimum remaining values) was chosen as the first additional selectable algorithm because it reuses the existing `place`/`backtrack` trace vocabulary (no new render logic), is a small dependency-free change, and produces a visibly smarter, more educational trace on hard puzzles.
+
+**Decision - Solver:** Added `createMrvTrace(board)` to `src/solver.js` alongside `createBacktrackingTrace`. Same output contract (`{ solved, steps, solvedBoard }`), same step events, and the same invalid-givens rejection. The only difference is cell selection: instead of the first empty cell in reading order, it picks the empty cell with the fewest legal candidates (fail-first), returning early when a 0-candidate cell is found.
+
+**Decision - Visualizer:** `src/visualizer.js` now selects the trace builder by `selectedAlgorithm` via a `TRACE_BUILDERS` map and a `_buildTrace()` helper used by both `runSolver()` and `finishNow()` (previously hardcoded to `createBacktrackingTrace`). Added a `setAlgorithm(algorithm)` method that updates the selection and calls `resetPuzzle()` so the existing trace (which belongs to the previous algorithm) is cleared and the next run rebuilds with the new algorithm. Status/badge/subtitle labels are now algorithm-aware via `ALGORITHM_LABELS`.
+
+**Decision - UI:** `index.html` adds a `<option value="mrv">` to the existing algorithm `<select>` and an `@change="setAlgorithm($event.target.value)"` handler. The select is already disabled during running/loading; switching while paused/ready/solved resets the trace.
+
+**Tradeoff:** MRV recomputes candidate counts every step, so each step does more work, but it produces far fewer steps on medium/hard puzzles — a net win and a more interesting animation. Trace length differs from naive backtracking, which slightly changes step counts and the projected `Finish Now` time, but the timing logic is unchanged (it scales by `steps.length`).
+
+**Verification:** TDD throughout. Added MRV solver tests (forced-placement trace, hard-puzzle unique solution, no input mutation, invalid-givens rejection, and a "first placement targets a minimum-candidate cell" property test) and visualizer tests (runSolver builds the selected algorithm's trace; `setAlgorithm` clears the trace and returns to ready). `npm test` and `npm run test:smoke` pass.
+
+**Cache update:** Bumped service worker cache from `sudoku-v22` to `sudoku-v23`. Updated all 6 runtime query strings in `index.html` from `?v=20260525-mobilewidth` to `?v=20260525-mrv`.
+
+**Docs follow-up:** Reworked the README "Solver Model" section into a "Solving Algorithms" section with a short learning paragraph for each implemented algorithm (Backtracking DFS and Backtracking + MRV), so a reader can understand how each search behaves. Updated the Algorithm Comparison intro (now states #1 and #2 are implemented) and reframed the former "Recommended next addition" block into "Why these two are implemented," with DLX/SAT listed as future candidates. README/AGENTS/CLAUDE are documentation-only and not in the `sw.js` asset list, so no further cache bump was required.

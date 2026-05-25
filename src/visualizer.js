@@ -6,8 +6,18 @@
   root.PLAYBACK_SPEEDS = api.PLAYBACK_SPEEDS;
   root.sudokuGame = api.sudokuGame;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function createVisualizerModule(solver, generator) {
-  const { createBacktrackingTrace } = solver;
+  const { createBacktrackingTrace, createMrvTrace } = solver;
   const { generateTestPuzzle } = generator;
+
+  const TRACE_BUILDERS = {
+    backtracking: createBacktrackingTrace,
+    mrv: createMrvTrace,
+  };
+
+  const ALGORITHM_LABELS = {
+    backtracking: 'Backtracking DFS',
+    mrv: 'Backtracking + MRV',
+  };
 
   // Base step delay: smooth animation at 1x, scales by integer factors
   const BASE_DELAY_MS = 260;
@@ -85,13 +95,21 @@
         this.newPuzzle();
       },
 
+      setAlgorithm(algorithm) {
+        if (!TRACE_BUILDERS[algorithm]) return;
+        this.selectedAlgorithm = algorithm;
+        // The existing trace belongs to the previous algorithm; clear it so the
+        // next run rebuilds with the newly selected algorithm. Keep the puzzle.
+        this.resetPuzzle();
+      },
+
       runSolver() {
         if (this.status === 'running') return;
 
         if (!this.steps.length || this.status === 'ready' || this.status === 'solved') {
           this._elapsedMs = 0;
           this._runStartTime = Date.now();
-          const trace = createBacktrackingTrace(this.initialBoard);
+          const trace = this._buildTrace(this.initialBoard);
           this.steps = trace.steps;
           this.solvedBoard = trace.solvedBoard;
           this.board = this.initialBoard.map(row => [...row]);
@@ -123,7 +141,7 @@
 
         const completedStepCount = this.stepIndex;
         this._stopPlayback();
-        const trace = createBacktrackingTrace(this.initialBoard);
+        const trace = this._buildTrace(this.initialBoard);
         this.steps = trace.steps;
         this.solvedBoard = trace.solvedBoard;
 
@@ -195,12 +213,16 @@
           return `Backtracking from row ${this.currentStep.row + 1}, column ${this.currentStep.col + 1}.`;
         }
         if (this.status === 'paused') return 'Solver paused.';
-        if (this.status === 'solved') return 'Solved by Backtracking DFS.';
+        if (this.status === 'solved') return `Solved by ${ALGORITHM_LABELS[this.selectedAlgorithm] || 'the solver'}.`;
         return 'Preparing solver.';
       },
 
       algorithmBadgeLabel() {
-        return this.selectedAlgorithm === 'backtracking' ? '⬡ Backtracking' : this.selectedAlgorithm;
+        const badges = {
+          backtracking: '⬡ Backtracking',
+          mrv: '⬡ Backtracking + MRV',
+        };
+        return badges[this.selectedAlgorithm] || this.selectedAlgorithm;
       },
 
       elapsedText() {
@@ -211,6 +233,7 @@
       subtitleText() {
         const labels = {
           backtracking: 'Backtracking DFS Visualizer',
+          mrv: 'Backtracking + MRV Visualizer',
         };
         return labels[this.selectedAlgorithm] || 'Algorithm Visualizer';
       },
@@ -248,6 +271,11 @@
         } else {
           this._flushTimer();
         }
+      },
+
+      _buildTrace(board) {
+        const build = TRACE_BUILDERS[this.selectedAlgorithm] || createBacktrackingTrace;
+        return build(board);
       },
 
       _stopPlayback() {

@@ -6,6 +6,7 @@ const {
   isSolvableLayout,
   countSolutions,
   createBacktrackingTrace,
+  createMrvTrace,
   generateTestPuzzle,
   PLAYBACK_SPEEDS,
   sudokuGame,
@@ -106,6 +107,55 @@ assert.deepStrictEqual(backtrackResult.solvedBoard[0], [5,3,4,6,7,8,9,1,2], 'tra
 
 console.log('All backtracking trace tests passed.');
 
+// MRV trace tests
+function countCandidates(b, row, col) {
+  let n = 0;
+  for (let v = 1; v <= 9; v++) if (isValid(b, row, col, v)) n++;
+  return n;
+}
+
+// rejects conflicted layouts before playback, same contract as backtracking
+assert.deepStrictEqual(
+  createMrvTrace(conflictedCompleteBoard),
+  { solved: false, steps: [], solvedBoard: null },
+  'MRV trace rejects conflicted layouts before playback'
+);
+
+// solves the single-empty-cell puzzle and records that forced placement
+const mrvTraceResult = createMrvTrace(tracePuzzle);
+assert.strictEqual(mrvTraceResult.solved, true, 'MRV trace puzzle is solved');
+assert.deepStrictEqual(mrvTraceResult.solvedBoard[0], [1,2,3,4,5,6,7,8,9], 'MRV trace solved board fills missing value');
+assert.deepStrictEqual(
+  mrvTraceResult.steps.map(({ type, row, col, value }) => ({ type, row, col, value })),
+  [{ type: 'place', row: 0, col: 8, value: 9 }],
+  'MRV trace records the single forced placement'
+);
+assert.strictEqual(tracePuzzle[0][8], 0, 'MRV trace does not mutate the input board');
+
+// solves the classic hard puzzle to the known unique solution
+const mrvHard = createMrvTrace(unsolved);
+assert.strictEqual(mrvHard.solved, true, 'MRV solves the classic puzzle');
+assert.deepStrictEqual(mrvHard.solvedBoard[0], [5,3,4,6,7,8,9,1,2], 'MRV recovers the unique solution');
+assert.strictEqual(unsolved[0][2], 0, 'MRV does not mutate the input board on a hard puzzle');
+
+// the distinguishing property: MRV's first placement targets a most-constrained cell
+const firstPlace = mrvHard.steps.find(step => step.type === 'place');
+assert.ok(firstPlace, 'MRV produces at least one placement');
+const firstPlaceCandidates = countCandidates(unsolved, firstPlace.row, firstPlace.col);
+let minCandidates = 10;
+for (let r = 0; r < 9; r++) {
+  for (let c = 0; c < 9; c++) {
+    if (unsolved[r][c] === 0) minCandidates = Math.min(minCandidates, countCandidates(unsolved, r, c));
+  }
+}
+assert.strictEqual(
+  firstPlaceCandidates,
+  minCandidates,
+  'MRV first placement targets a cell with the fewest candidates'
+);
+
+console.log('All MRV trace tests passed.');
+
 // visualizer test puzzle tests
 const expectedEmptyRanges = {
   easy: [30, 40],
@@ -155,6 +205,51 @@ assert.deepStrictEqual(finishGame.solvedBoard[0], [5,3,4,6,7,8,9,1,2], 'finishNo
 assert.strictEqual(finishGame.stepIndex, finishGame.steps.length, 'finishNow advances to the end of the trace');
 
 console.log('All visualizer finish-now tests passed.');
+
+// visualizer algorithm-selection tests
+const stepShape = step => ({ type: step.type, row: step.row, col: step.col, value: step.value });
+
+const mrvRunGame = sudokuGame();
+mrvRunGame.initialBoard = unsolved.map(row => [...row]);
+mrvRunGame.board = unsolved.map(row => [...row]);
+mrvRunGame.locked = Array.from({ length: 9 }, () => Array(9).fill(false));
+mrvRunGame.selectedAlgorithm = 'mrv';
+mrvRunGame.runSolver();
+clearInterval(mrvRunGame._interval);
+assert.deepStrictEqual(
+  mrvRunGame.steps.map(stepShape),
+  createMrvTrace(unsolved).steps.map(stepShape),
+  'runSolver builds the MRV trace when MRV is selected'
+);
+
+const btRunGame = sudokuGame();
+btRunGame.initialBoard = unsolved.map(row => [...row]);
+btRunGame.board = unsolved.map(row => [...row]);
+btRunGame.locked = Array.from({ length: 9 }, () => Array(9).fill(false));
+btRunGame.selectedAlgorithm = 'backtracking';
+btRunGame.runSolver();
+clearInterval(btRunGame._interval);
+assert.deepStrictEqual(
+  btRunGame.steps.map(stepShape),
+  createBacktrackingTrace(unsolved).steps.map(stepShape),
+  'runSolver builds the backtracking trace when backtracking is selected'
+);
+
+// changing the algorithm clears any existing trace and returns to ready
+const switchGame = sudokuGame();
+switchGame.initialBoard = unsolved.map(row => [...row]);
+switchGame.board = unsolved.map(row => [...row]);
+switchGame.locked = Array.from({ length: 9 }, () => Array(9).fill(false));
+switchGame.runSolver();
+clearInterval(switchGame._interval);
+switchGame.pauseSolver();
+switchGame.setAlgorithm('mrv');
+assert.strictEqual(switchGame.selectedAlgorithm, 'mrv', 'setAlgorithm updates the selected algorithm');
+assert.strictEqual(switchGame.steps.length, 0, 'setAlgorithm clears the existing trace');
+assert.strictEqual(switchGame.stepIndex, 0, 'setAlgorithm resets the step index');
+assert.strictEqual(switchGame.status, 'ready', 'setAlgorithm returns the visualizer to ready');
+
+console.log('All visualizer algorithm-selection tests passed.');
 
 const { generateSolution, shuffleBoard, removeClues } = require('../game.js');
 
