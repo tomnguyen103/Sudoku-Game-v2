@@ -837,6 +837,10 @@
 
     const steps = [];
 
+    // Counts duplicate digits in rows and columns only.
+    // Box conflicts are intentionally omitted: boxCompleteFill seeds every box
+    // with exactly each digit once, and all swaps stay within a single box,
+    // so box conflicts remain zero by construction throughout the run.
     function countConflicts(b) {
       let conflicts = 0;
       for (let i = 0; i < 9; i++) {
@@ -898,6 +902,7 @@
     const ALPHA       = 0.99995;
     const MAX_ITER    = 500000;
     const MAX_RESTART = 5;
+    const STEP_STRIDE = 10;  // emit one sa-swap step per N accepted swaps
 
     const nonClueByBox = buildNonClueCellsByBox(board);
     const swappableBoxes = nonClueByBox
@@ -929,6 +934,7 @@
 
     let T = T_INITIAL;
     let attempt = 1;
+    let acceptedCount = 0;
 
     for (let iter = 0; iter < MAX_ITER && conflicts > 0; iter++) {
       T *= ALPHA;
@@ -938,6 +944,7 @@
         attempt++;
         working = boxCompleteFill(board);
         conflicts = countConflicts(working);
+        acceptedCount = 0;
         T = T_INITIAL;
         steps.push({
           type: 'sa-restart',
@@ -965,16 +972,19 @@
 
       if (dE < 0 || Math.random() < Math.exp(-dE / T)) {
         conflicts = newConflicts;
-        steps.push({
-          type: 'sa-swap',
-          row1: r1, col1: c1,
-          row2: r2, col2: c2,
-          val1: v2,
-          val2: v1,
-          conflicts,
-          temperature: Math.round(T * 10000) / 10000,
-          board: working.map(r => [...r]),
-        });
+        acceptedCount++;
+        if (acceptedCount % STEP_STRIDE === 0) {
+          steps.push({
+            type: 'sa-swap',
+            row1: r1, col1: c1,
+            row2: r2, col2: c2,
+            val1: v2,
+            val2: v1,
+            conflicts,
+            temperature: Math.round(T * 10000) / 10000,
+            board: working.map(r => [...r]),
+          });
+        }
       } else {
         working[r1][c1] = v1;
         working[r2][c2] = v2;
