@@ -1,0 +1,8 @@
+﻿# .understandignore - patterns for files/dirs to exclude from analysis
+node_modules/
+.git/
+vendor/
+icons/
+*.png
+*.svg
+*.lock

@@ -1,0 +1,31 @@
+{
+  "issues": [],
+  "warnings": [
+    "Graph generated locally without LLM subagent expansion because this session did not have explicit delegation permission.",
+    "Vendor runtimes, binary icons, lockfile, and most historical plan documents were intentionally excluded to keep the graph focused."
+  ],
+  "stats": {
+    "totalNodes": 36,
+    "totalEdges": 47,
+    "totalLayers": 5,
+    "tourSteps": 7,
+    "nodeTypes": {
+      "file": 12,
+      "config": 3,
+      "document": 8,
+      "function": 13
+    },
+    "edgeTypes": {
+      "depends_on": 5,
+      "configures": 2,
+      "imports": 7,
+      "tested_by": 2,
+      "related": 3,
+      "deploys": 1,
+      "documents": 6,
+      "contains": 13,
+      "calls": 7,
+      "validates": 1
+    }
+  }
+}

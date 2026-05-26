@@ -86,3 +86,17 @@ Implementation notes: [`implementation-notes.md`](implementation-notes.md)
 Algorithm explanations and comparison: the README "Solving Algorithms" and "Algorithm Comparison" sections ([`README.md`](README.md)) document each implemented algorithm and candidate future algorithms.
 
 Original design spec: [`docs/superpowers/specs/2026-05-23-sudoku-game-design.md`](docs/superpowers/specs/2026-05-23-sudoku-game-design.md)
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in GitHub Issues (`tomnguyen103/Sudoku-Game-v2`). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five-role vocabulary (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context repo — `CONTEXT.md` and `docs/adr/` at the root (neither exists yet; skills proceed silently). See `docs/agents/domain.md`.

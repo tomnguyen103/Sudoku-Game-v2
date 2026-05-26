@@ -1,0 +1,918 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "Sudoku Solver Visualizer",
+    "languages": [
+      "JavaScript",
+      "HTML",
+      "CSS",
+      "Python",
+      "Markdown",
+      "JSON"
+    ],
+    "frameworks": [
+      "Alpine.js",
+      "Tailwind CSS browser runtime",
+      "Playwright",
+      "Netlify",
+      "PWA Service Worker"
+    ],
+    "description": "A static browser-based Sudoku solver visualizer that generates unique puzzles and animates multiple solving algorithms.",
+    "analyzedAt": "2026-05-26T06:27:35.073Z",
+    "gitCommitHash": "e43a87ef5cee2969cdb0c55af0b7d4f48d14275c"
+  },
+  "nodes": [
+    {
+      "id": "file:index.html",
+      "type": "file",
+      "name": "index.html",
+      "filePath": "index.html",
+      "summary": "Browser entry point that loads local Tailwind, Alpine, the solver/generator/visualizer scripts, and declares the Sudoku board plus control/status UI.",
+      "tags": [
+        "entrypoint",
+        "markup",
+        "alpine",
+        "ui"
+      ]
+    },
+    {
+      "id": "file:style.css",
+      "type": "file",
+      "name": "style.css",
+      "filePath": "style.css",
+      "summary": "Custom responsive styling for Sudoku grid sizing, cell borders, candidate marks, status panels, algorithm controls, and mobile layout behavior.",
+      "tags": [
+        "styling",
+        "responsive",
+        "sudoku-grid"
+      ]
+    },
+    {
+      "id": "file:src/solver.js",
+      "type": "file",
+      "name": "solver.js",
+      "filePath": "src/solver.js",
+      "summary": "Core Sudoku validation and solving module. Exposes backtracking, MRV, constraint propagation, and human-logic trace builders under a UMD-style browser/CommonJS wrapper.",
+      "tags": [
+        "solver",
+        "algorithms",
+        "trace-contract"
+      ]
+    },
+    {
+      "id": "file:src/generator.js",
+      "type": "file",
+      "name": "generator.js",
+      "filePath": "src/generator.js",
+      "summary": "Puzzle generator that creates solved boards, shuffles valid layouts, removes clues by difficulty, and enforces unique solvability.",
+      "tags": [
+        "generation",
+        "difficulty",
+        "uniqueness"
+      ]
+    },
+    {
+      "id": "file:src/visualizer.js",
+      "type": "file",
+      "name": "visualizer.js",
+      "filePath": "src/visualizer.js",
+      "summary": "Alpine state factory for puzzle lifecycle, algorithm selection, trace playback, timers, candidate display, status text, and dark mode persistence.",
+      "tags": [
+        "visualizer",
+        "alpine-state",
+        "playback"
+      ]
+    },
+    {
+      "id": "file:game.js",
+      "type": "file",
+      "name": "game.js",
+      "filePath": "game.js",
+      "summary": "CommonJS compatibility module that combines browser modules for Node-based logic and project tests.",
+      "tags": [
+        "test-adapter",
+        "commonjs"
+      ]
+    },
+    {
+      "id": "file:sw.js",
+      "type": "file",
+      "name": "sw.js",
+      "filePath": "sw.js",
+      "summary": "Cache-first service worker that precaches static runtime assets and reloads clients when a new worker takes control.",
+      "tags": [
+        "pwa",
+        "service-worker",
+        "cache"
+      ]
+    },
+    {
+      "id": "config:manifest.json",
+      "type": "config",
+      "name": "manifest.json",
+      "filePath": "manifest.json",
+      "summary": "PWA manifest defining the Sudoku app identity, icons, theme color, display mode, and start URL.",
+      "tags": [
+        "pwa",
+        "manifest"
+      ]
+    },
+    {
+      "id": "config:package.json",
+      "type": "config",
+      "name": "package.json",
+      "filePath": "package.json",
+      "summary": "Node package manifest with repeatable test scripts and Playwright as the browser smoke-test dependency.",
+      "tags": [
+        "npm",
+        "tests",
+        "scripts"
+      ]
+    },
+    {
+      "id": "config:netlify.toml",
+      "type": "config",
+      "name": "netlify.toml",
+      "filePath": "netlify.toml",
+      "summary": "Netlify static hosting configuration for serving the repository root without a build output directory.",
+      "tags": [
+        "deployment",
+        "netlify"
+      ]
+    },
+    {
+      "id": "document:README.md",
+      "type": "document",
+      "name": "README.md",
+      "filePath": "README.md",
+      "summary": "Primary project documentation explaining purpose, local setup, controls, algorithms, architecture, PWA behavior, and deployment.",
+      "tags": [
+        "docs",
+        "overview"
+      ]
+    },
+    {
+      "id": "document:AGENTS.md",
+      "type": "document",
+      "name": "AGENTS.md",
+      "filePath": "AGENTS.md",
+      "summary": "Agent-facing project guide describing scope, stack, design decisions, workflow, deployment, and out-of-scope features.",
+      "tags": [
+        "docs",
+        "agent-guide"
+      ]
+    },
+    {
+      "id": "document:CLAUDE.md",
+      "type": "document",
+      "name": "CLAUDE.md",
+      "filePath": "CLAUDE.md",
+      "summary": "Companion agent instructions and project context for Claude-oriented development sessions.",
+      "tags": [
+        "docs",
+        "agent-guide"
+      ]
+    },
+    {
+      "id": "document:implementation-notes.md",
+      "type": "document",
+      "name": "implementation-notes.md",
+      "filePath": "implementation-notes.md",
+      "summary": "Running implementation notes capturing design decisions, algorithm additions, layout work, and tradeoffs over time.",
+      "tags": [
+        "docs",
+        "decisions"
+      ]
+    },
+    {
+      "id": "document:docs/release-checklist.md",
+      "type": "document",
+      "name": "release-checklist.md",
+      "filePath": "docs/release-checklist.md",
+      "summary": "Deployment checklist for validating tests, PWA cache versions, assets, and release readiness before publishing.",
+      "tags": [
+        "docs",
+        "release"
+      ]
+    },
+    {
+      "id": "file:tests/game.test.js",
+      "type": "file",
+      "name": "game.test.js",
+      "filePath": "tests/game.test.js",
+      "summary": "Node assert test suite covering solver validity, trace contracts, generator uniqueness, visualizer lifecycle, algorithm selection, and timing behavior.",
+      "tags": [
+        "tests",
+        "logic",
+        "visualizer"
+      ]
+    },
+    {
+      "id": "file:tests/project.test.js",
+      "type": "file",
+      "name": "project.test.js",
+      "filePath": "tests/project.test.js",
+      "summary": "Project guardrail tests for setup, documentation, local vendor assets, PWA cache references, and static-site assumptions.",
+      "tags": [
+        "tests",
+        "setup",
+        "guardrails"
+      ]
+    },
+    {
+      "id": "file:tests/smoke.test.js",
+      "type": "file",
+      "name": "smoke.test.js",
+      "filePath": "tests/smoke.test.js",
+      "summary": "Playwright smoke test for browser workflow verification against the static app.",
+      "tags": [
+        "tests",
+        "browser",
+        "smoke"
+      ]
+    },
+    {
+      "id": "file:generate_icons.py",
+      "type": "file",
+      "name": "generate_icons.py",
+      "filePath": "generate_icons.py",
+      "summary": "Utility script for producing PWA icon files used by the manifest and HTML metadata.",
+      "tags": [
+        "script",
+        "icons",
+        "pwa"
+      ]
+    },
+    {
+      "id": "file:sudoku_solver.py",
+      "type": "file",
+      "name": "sudoku_solver.py",
+      "filePath": "sudoku_solver.py",
+      "summary": "Original Python backtracking Sudoku solver kept as historical reference for the browser visualizer evolution.",
+      "tags": [
+        "legacy",
+        "python",
+        "solver"
+      ]
+    },
+    {
+      "id": "document:docs/superpowers/specs/2026-05-23-sudoku-game-design.md",
+      "type": "document",
+      "name": "Sudoku game design spec",
+      "filePath": "docs/superpowers/specs/2026-05-23-sudoku-game-design.md",
+      "summary": "Original design spec for the Sudoku web experience and early game/visualizer direction.",
+      "tags": [
+        "docs",
+        "spec"
+      ]
+    },
+    {
+      "id": "document:docs/superpowers/specs/2026-05-25-constraint-propagation-algorithm.md",
+      "type": "document",
+      "name": "Constraint propagation spec",
+      "filePath": "docs/superpowers/specs/2026-05-25-constraint-propagation-algorithm.md",
+      "summary": "Specification for adding constraint propagation as a distinct visual solving algorithm.",
+      "tags": [
+        "docs",
+        "spec",
+        "algorithm"
+      ]
+    },
+    {
+      "id": "document:docs/superpowers/specs/2026-05-26-human-logic-v3-xwing-swordfish.md",
+      "type": "document",
+      "name": "Human logic v3 spec",
+      "filePath": "docs/superpowers/specs/2026-05-26-human-logic-v3-xwing-swordfish.md",
+      "summary": "Future-facing specification for expanding human logic strategies with advanced techniques such as X-Wing and Swordfish.",
+      "tags": [
+        "docs",
+        "spec",
+        "future"
+      ]
+    },
+    {
+      "id": "function:src/solver.js:isValid",
+      "type": "function",
+      "name": "isValid",
+      "filePath": "src/solver.js",
+      "summary": "Checks whether a digit can be placed in a row, column, and 3x3 box without violating Sudoku givens.",
+      "tags": [
+        "validation",
+        "sudoku-rule"
+      ]
+    },
+    {
+      "id": "function:src/solver.js:hasValidGivens",
+      "type": "function",
+      "name": "hasValidGivens",
+      "filePath": "src/solver.js",
+      "summary": "Validates board shape, digit range, and duplicate-free givens before solving or tracing.",
+      "tags": [
+        "validation",
+        "preflight"
+      ]
+    },
+    {
+      "id": "function:src/solver.js:solvePuzzle",
+      "type": "function",
+      "name": "solvePuzzle",
+      "filePath": "src/solver.js",
+      "summary": "Mutating depth-first solver used as a reference solution and solvability check.",
+      "tags": [
+        "solver",
+        "backtracking"
+      ]
+    },
+    {
+      "id": "function:src/solver.js:countSolutions",
+      "type": "function",
+      "name": "countSolutions",
+      "filePath": "src/solver.js",
+      "summary": "Counts solutions up to a cap so generator can reject non-unique layouts.",
+      "tags": [
+        "solver",
+        "uniqueness"
+      ]
+    },
+    {
+      "id": "function:src/solver.js:createBacktrackingTrace",
+      "type": "function",
+      "name": "createBacktrackingTrace",
+      "filePath": "src/solver.js",
+      "summary": "Builds a place/backtrack trace using naive reading-order DFS.",
+      "tags": [
+        "trace",
+        "backtracking"
+      ]
+    },
+    {
+      "id": "function:src/solver.js:createMrvTrace",
+      "type": "function",
+      "name": "createMrvTrace",
+      "filePath": "src/solver.js",
+      "summary": "Builds a place/backtrack trace using the Minimum Remaining Values heuristic.",
+      "tags": [
+        "trace",
+        "mrv"
+      ]
+    },
+    {
+      "id": "function:src/solver.js:createConstraintPropagationTrace",
+      "type": "function",
+      "name": "createConstraintPropagationTrace",
+      "filePath": "src/solver.js",
+      "summary": "Builds a candidate-snapshot trace using propagation waves, guesses, and contradictions.",
+      "tags": [
+        "trace",
+        "constraint-propagation"
+      ]
+    },
+    {
+      "id": "function:src/solver.js:createHumanLogicTrace",
+      "type": "function",
+      "name": "createHumanLogicTrace",
+      "filePath": "src/solver.js",
+      "summary": "Builds named human-logic deduction traces with singles and naked pairs.",
+      "tags": [
+        "trace",
+        "human-logic"
+      ]
+    },
+    {
+      "id": "function:src/solver.js:createHumanLogicV2Trace",
+      "type": "function",
+      "name": "createHumanLogicV2Trace",
+      "filePath": "src/solver.js",
+      "summary": "Adds hidden pairs, pointing pairs/triples, and box-line reduction to human-logic tracing.",
+      "tags": [
+        "trace",
+        "human-logic-v2"
+      ]
+    },
+    {
+      "id": "function:src/generator.js:generateTestPuzzle",
+      "type": "function",
+      "name": "generateTestPuzzle",
+      "filePath": "src/generator.js",
+      "summary": "Attempts complete-board generation, clue removal, solvability preflight, and uniqueness validation for a selected difficulty.",
+      "tags": [
+        "generation",
+        "public-api"
+      ]
+    },
+    {
+      "id": "function:src/visualizer.js:sudokuGame",
+      "type": "function",
+      "name": "sudokuGame",
+      "filePath": "src/visualizer.js",
+      "summary": "Creates the Alpine component state and methods that drive the visible app.",
+      "tags": [
+        "alpine",
+        "state-factory"
+      ]
+    },
+    {
+      "id": "function:src/visualizer.js:runSolver",
+      "type": "function",
+      "name": "runSolver",
+      "filePath": "src/visualizer.js",
+      "summary": "Measures the selected trace builder, initializes counters and board state, then starts interval-based playback.",
+      "tags": [
+        "playback",
+        "algorithm-selection"
+      ]
+    },
+    {
+      "id": "function:src/visualizer.js:finishNow",
+      "type": "function",
+      "name": "finishNow",
+      "filePath": "src/visualizer.js",
+      "summary": "Completes the current puzzle immediately by recomputing the selected trace, applying final counts, filling the solved board, and updating status.",
+      "tags": [
+        "playback",
+        "shortcut"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "source": "file:index.html",
+      "target": "file:style.css",
+      "type": "depends_on",
+      "weight": 0.6,
+      "description": "Loads custom CSS for board and control styling."
+    },
+    {
+      "source": "file:index.html",
+      "target": "file:src/solver.js",
+      "type": "depends_on",
+      "weight": 0.6,
+      "description": "Loads solver module before generator and visualizer."
+    },
+    {
+      "source": "file:index.html",
+      "target": "file:src/generator.js",
+      "type": "depends_on",
+      "weight": 0.6,
+      "description": "Loads puzzle generation module for visualizer state."
+    },
+    {
+      "source": "file:index.html",
+      "target": "file:src/visualizer.js",
+      "type": "depends_on",
+      "weight": 0.6,
+      "description": "Instantiates sudokuGame via Alpine x-data."
+    },
+    {
+      "source": "file:index.html",
+      "target": "file:sw.js",
+      "type": "configures",
+      "weight": 0.6,
+      "description": "Registers the service worker on window load."
+    },
+    {
+      "source": "file:index.html",
+      "target": "config:manifest.json",
+      "type": "configures",
+      "weight": 0.6,
+      "description": "Links the PWA manifest."
+    },
+    {
+      "source": "file:src/generator.js",
+      "target": "file:src/solver.js",
+      "type": "imports",
+      "weight": 0.7,
+      "description": "Requires or reads SudokuSolver for validation and uniqueness checks."
+    },
+    {
+      "source": "file:src/visualizer.js",
+      "target": "file:src/solver.js",
+      "type": "imports",
+      "weight": 0.7,
+      "description": "Uses trace builders for all selectable algorithms."
+    },
+    {
+      "source": "file:src/visualizer.js",
+      "target": "file:src/generator.js",
+      "type": "imports",
+      "weight": 0.7,
+      "description": "Uses generateTestPuzzle for New Puzzle and difficulty changes."
+    },
+    {
+      "source": "file:game.js",
+      "target": "file:src/solver.js",
+      "type": "imports",
+      "weight": 0.7,
+      "description": "Exposes solver exports to Node tests."
+    },
+    {
+      "source": "file:game.js",
+      "target": "file:src/generator.js",
+      "type": "imports",
+      "weight": 0.7,
+      "description": "Exposes generator exports to Node tests."
+    },
+    {
+      "source": "file:game.js",
+      "target": "file:src/visualizer.js",
+      "type": "imports",
+      "weight": 0.7,
+      "description": "Exposes visualizer exports to Node tests."
+    },
+    {
+      "source": "file:tests/game.test.js",
+      "target": "file:game.js",
+      "type": "imports",
+      "weight": 0.7,
+      "description": "Imports the CommonJS aggregate for logic tests."
+    },
+    {
+      "source": "file:tests/project.test.js",
+      "target": "config:package.json",
+      "type": "tested_by",
+      "weight": 0.5,
+      "description": "Verifies project setup and expected scripts/assets."
+    },
+    {
+      "source": "file:tests/smoke.test.js",
+      "target": "file:index.html",
+      "type": "tested_by",
+      "weight": 0.5,
+      "description": "Exercises the browser-facing static application workflow."
+    },
+    {
+      "source": "file:sw.js",
+      "target": "file:index.html",
+      "type": "depends_on",
+      "weight": 0.6,
+      "description": "Caches the app shell and runtime scripts referenced by the page."
+    },
+    {
+      "source": "config:manifest.json",
+      "target": "file:generate_icons.py",
+      "type": "related",
+      "weight": 0.5,
+      "description": "Manifest icon assets are produced by the icon generation utility."
+    },
+    {
+      "source": "config:netlify.toml",
+      "target": "file:index.html",
+      "type": "deploys",
+      "weight": 0.7,
+      "description": "Netlify serves the root HTML app as the static entry point."
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:index.html",
+      "type": "documents",
+      "weight": 0.5,
+      "description": "Documents UI workflow and static-site entry point."
+    },
+    {
+      "source": "document:README.md",
+      "target": "file:src/solver.js",
+      "type": "documents",
+      "weight": 0.5,
+      "description": "Documents implemented solving algorithms."
+    },
+    {
+      "source": "document:AGENTS.md",
+      "target": "file:src/visualizer.js",
+      "type": "documents",
+      "weight": 0.5,
+      "description": "Captures visualizer behavior and project conventions for agents."
+    },
+    {
+      "source": "document:implementation-notes.md",
+      "target": "file:src/solver.js",
+      "type": "documents",
+      "weight": 0.5,
+      "description": "Records algorithm implementation decisions."
+    },
+    {
+      "source": "document:docs/release-checklist.md",
+      "target": "file:sw.js",
+      "type": "documents",
+      "weight": 0.5,
+      "description": "Calls out PWA cache version checks before release."
+    },
+    {
+      "source": "document:docs/superpowers/specs/2026-05-25-constraint-propagation-algorithm.md",
+      "target": "function:src/solver.js:createConstraintPropagationTrace",
+      "type": "documents",
+      "weight": 0.5,
+      "description": "Specifies the constraint propagation trace feature."
+    },
+    {
+      "source": "document:docs/superpowers/specs/2026-05-26-human-logic-v3-xwing-swordfish.md",
+      "target": "function:src/solver.js:createHumanLogicV2Trace",
+      "type": "related",
+      "weight": 0.5,
+      "description": "Builds on the current human-logic v2 trace as future strategy work."
+    },
+    {
+      "source": "file:src/solver.js",
+      "target": "function:src/solver.js:isValid",
+      "type": "contains",
+      "weight": 1,
+      "description": "Exports validation helper."
+    },
+    {
+      "source": "file:src/solver.js",
+      "target": "function:src/solver.js:hasValidGivens",
+      "type": "contains",
+      "weight": 1,
+      "description": "Exports preflight validation."
+    },
+    {
+      "source": "file:src/solver.js",
+      "target": "function:src/solver.js:solvePuzzle",
+      "type": "contains",
+      "weight": 1,
+      "description": "Exports reference solver."
+    },
+    {
+      "source": "file:src/solver.js",
+      "target": "function:src/solver.js:countSolutions",
+      "type": "contains",
+      "weight": 1,
+      "description": "Exports solution counter."
+    },
+    {
+      "source": "file:src/solver.js",
+      "target": "function:src/solver.js:createBacktrackingTrace",
+      "type": "contains",
+      "weight": 1,
+      "description": "Exports naive DFS trace builder."
+    },
+    {
+      "source": "file:src/solver.js",
+      "target": "function:src/solver.js:createMrvTrace",
+      "type": "contains",
+      "weight": 1,
+      "description": "Exports MRV trace builder."
+    },
+    {
+      "source": "file:src/solver.js",
+      "target": "function:src/solver.js:createConstraintPropagationTrace",
+      "type": "contains",
+      "weight": 1,
+      "description": "Exports constraint propagation trace builder."
+    },
+    {
+      "source": "file:src/solver.js",
+      "target": "function:src/solver.js:createHumanLogicTrace",
+      "type": "contains",
+      "weight": 1,
+      "description": "Exports human logic trace builder."
+    },
+    {
+      "source": "file:src/solver.js",
+      "target": "function:src/solver.js:createHumanLogicV2Trace",
+      "type": "contains",
+      "weight": 1,
+      "description": "Exports human logic v2 trace builder."
+    },
+    {
+      "source": "file:src/generator.js",
+      "target": "function:src/generator.js:generateTestPuzzle",
+      "type": "contains",
+      "weight": 1,
+      "description": "Exports public puzzle generation workflow."
+    },
+    {
+      "source": "file:src/visualizer.js",
+      "target": "function:src/visualizer.js:sudokuGame",
+      "type": "contains",
+      "weight": 1,
+      "description": "Exports Alpine state factory."
+    },
+    {
+      "source": "function:src/visualizer.js:sudokuGame",
+      "target": "function:src/visualizer.js:runSolver",
+      "type": "contains",
+      "weight": 1,
+      "description": "runSolver is a method of the Alpine state object."
+    },
+    {
+      "source": "function:src/visualizer.js:sudokuGame",
+      "target": "function:src/visualizer.js:finishNow",
+      "type": "contains",
+      "weight": 1,
+      "description": "finishNow is a method of the Alpine state object."
+    },
+    {
+      "source": "function:src/generator.js:generateTestPuzzle",
+      "target": "function:src/solver.js:countSolutions",
+      "type": "calls",
+      "weight": 0.8,
+      "description": "Uses capped solution counting to enforce uniqueness."
+    },
+    {
+      "source": "function:src/generator.js:generateTestPuzzle",
+      "target": "function:src/solver.js:hasValidGivens",
+      "type": "validates",
+      "weight": 0.5,
+      "description": "Generation pipeline relies on solver preflight indirectly via solvability checks."
+    },
+    {
+      "source": "function:src/visualizer.js:runSolver",
+      "target": "function:src/solver.js:createBacktrackingTrace",
+      "type": "calls",
+      "weight": 0.8,
+      "description": "Default selected algorithm trace builder."
+    },
+    {
+      "source": "function:src/visualizer.js:runSolver",
+      "target": "function:src/solver.js:createMrvTrace",
+      "type": "calls",
+      "weight": 0.8,
+      "description": "MRV selected algorithm trace builder."
+    },
+    {
+      "source": "function:src/visualizer.js:runSolver",
+      "target": "function:src/solver.js:createConstraintPropagationTrace",
+      "type": "calls",
+      "weight": 0.8,
+      "description": "Constraint propagation selected algorithm trace builder."
+    },
+    {
+      "source": "function:src/visualizer.js:runSolver",
+      "target": "function:src/solver.js:createHumanLogicTrace",
+      "type": "calls",
+      "weight": 0.8,
+      "description": "Human logic selected algorithm trace builder."
+    },
+    {
+      "source": "function:src/visualizer.js:runSolver",
+      "target": "function:src/solver.js:createHumanLogicV2Trace",
+      "type": "calls",
+      "weight": 0.8,
+      "description": "Human logic v2 selected algorithm trace builder."
+    },
+    {
+      "source": "function:src/visualizer.js:sudokuGame",
+      "target": "function:src/generator.js:generateTestPuzzle",
+      "type": "calls",
+      "weight": 0.8,
+      "description": "newPuzzle creates the layout for the current difficulty."
+    },
+    {
+      "source": "function:src/visualizer.js:finishNow",
+      "target": "function:src/visualizer.js:runSolver",
+      "type": "related",
+      "weight": 0.5,
+      "description": "Both paths measure and consume the same selected trace contract."
+    }
+  ],
+  "layers": [
+    {
+      "id": "layer:app-shell",
+      "name": "App Shell",
+      "description": "HTML, styling, PWA metadata, and service-worker assets that make the static browser app load and installable.",
+      "nodeIds": [
+        "file:index.html",
+        "file:style.css",
+        "file:sw.js",
+        "config:manifest.json",
+        "config:netlify.toml",
+        "file:generate_icons.py"
+      ]
+    },
+    {
+      "id": "layer:sudoku-domain",
+      "name": "Sudoku Domain Logic",
+      "description": "Solver and generator modules plus key exported functions that validate boards, create unique puzzles, and build algorithm traces.",
+      "nodeIds": [
+        "file:src/solver.js",
+        "file:src/generator.js",
+        "function:src/solver.js:isValid",
+        "function:src/solver.js:hasValidGivens",
+        "function:src/solver.js:solvePuzzle",
+        "function:src/solver.js:countSolutions",
+        "function:src/solver.js:createBacktrackingTrace",
+        "function:src/solver.js:createMrvTrace",
+        "function:src/solver.js:createConstraintPropagationTrace",
+        "function:src/solver.js:createHumanLogicTrace",
+        "function:src/solver.js:createHumanLogicV2Trace",
+        "function:src/generator.js:generateTestPuzzle",
+        "file:sudoku_solver.py"
+      ]
+    },
+    {
+      "id": "layer:visualizer-state",
+      "name": "Visualizer State",
+      "description": "Alpine state and playback controls that connect generated puzzles and trace builders to the visible board, timers, counters, and statuses.",
+      "nodeIds": [
+        "file:src/visualizer.js",
+        "function:src/visualizer.js:sudokuGame",
+        "function:src/visualizer.js:runSolver",
+        "function:src/visualizer.js:finishNow"
+      ]
+    },
+    {
+      "id": "layer:testing",
+      "name": "Testing",
+      "description": "Node and browser checks that protect solver behavior, visualizer lifecycle, project setup, and browser smoke workflows.",
+      "nodeIds": [
+        "file:game.js",
+        "file:tests/game.test.js",
+        "file:tests/project.test.js",
+        "file:tests/smoke.test.js",
+        "config:package.json"
+      ]
+    },
+    {
+      "id": "layer:documentation",
+      "name": "Documentation",
+      "description": "Human and agent-facing documentation, release notes, implementation history, and feature specs/plans.",
+      "nodeIds": [
+        "document:README.md",
+        "document:AGENTS.md",
+        "document:CLAUDE.md",
+        "document:implementation-notes.md",
+        "document:docs/release-checklist.md",
+        "document:docs/superpowers/specs/2026-05-23-sudoku-game-design.md",
+        "document:docs/superpowers/specs/2026-05-25-constraint-propagation-algorithm.md",
+        "document:docs/superpowers/specs/2026-05-26-human-logic-v3-xwing-swordfish.md"
+      ]
+    }
+  ],
+  "tour": [
+    {
+      "order": 1,
+      "title": "Project Overview",
+      "description": "Start with the README and agent guide to understand that this is a static Sudoku solver visualizer, not a manual Sudoku game.",
+      "nodeIds": [
+        "document:README.md",
+        "document:AGENTS.md"
+      ]
+    },
+    {
+      "order": 2,
+      "title": "Browser App Shell",
+      "description": "Inspect the HTML, CSS, manifest, and service worker to see how the no-build static app loads Alpine, local assets, and PWA behavior.",
+      "nodeIds": [
+        "file:index.html",
+        "file:style.css",
+        "config:manifest.json",
+        "file:sw.js"
+      ]
+    },
+    {
+      "order": 3,
+      "title": "Solver Trace Contract",
+      "description": "Read the solver module to see the shared trace shape used by backtracking, MRV, constraint propagation, and human-logic algorithms.",
+      "nodeIds": [
+        "file:src/solver.js",
+        "function:src/solver.js:createBacktrackingTrace",
+        "function:src/solver.js:createMrvTrace",
+        "function:src/solver.js:createConstraintPropagationTrace",
+        "function:src/solver.js:createHumanLogicTrace",
+        "function:src/solver.js:createHumanLogicV2Trace"
+      ]
+    },
+    {
+      "order": 4,
+      "title": "Puzzle Generation",
+      "description": "Follow generation from a complete shuffled board through clue removal, solvability checks, and uniqueness enforcement.",
+      "nodeIds": [
+        "file:src/generator.js",
+        "function:src/generator.js:generateTestPuzzle",
+        "function:src/solver.js:countSolutions"
+      ]
+    },
+    {
+      "order": 5,
+      "title": "Visualizer Playback",
+      "description": "See how Alpine state chooses an algorithm, builds a trace, animates steps, updates counters, supports finish-now, and reports status.",
+      "nodeIds": [
+        "file:src/visualizer.js",
+        "function:src/visualizer.js:sudokuGame",
+        "function:src/visualizer.js:runSolver",
+        "function:src/visualizer.js:finishNow"
+      ]
+    },
+    {
+      "order": 6,
+      "title": "Verification Path",
+      "description": "Use the tests to understand the expected behavior for solver logic, generated layouts, visualizer lifecycle, static assets, and browser smoke workflow.",
+      "nodeIds": [
+        "file:tests/game.test.js",
+        "file:tests/project.test.js",
+        "file:tests/smoke.test.js",
+        "file:game.js"
+      ]
+    },
+    {
+      "order": 7,
+      "title": "Release Readiness",
+      "description": "Finish with release documentation and deployment config to understand how the static site is checked and served on Netlify.",
+      "nodeIds": [
+        "document:docs/release-checklist.md",
+        "config:netlify.toml",
+        "document:implementation-notes.md"
+      ]
+    }
+  ]
+}
