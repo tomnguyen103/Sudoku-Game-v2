@@ -352,6 +352,25 @@
         return this.isCurrentCell(row, col) && this.currentStep?.type === 'contradiction';
       },
 
+      isFishBaseCell(row, col) {
+        if (!this.currentStep) return false;
+        const s = this.currentStep;
+        if (s.type !== 'human-eliminate' || (s.strategy !== 'x-wing' && s.strategy !== 'swordfish')) return false;
+        return s.baseSet.some(([r, c]) => r === row && c === col);
+      },
+
+      isFishCoverLine(row, col) {
+        if (!this.currentStep) return false;
+        const s = this.currentStep;
+        if (s.type !== 'human-eliminate' || (s.strategy !== 'x-wing' && s.strategy !== 'swordfish')) return false;
+        // Base cells get fish-base styling, not cover stripe
+        if (s.baseSet.some(([r, c]) => r === row && c === col)) return false;
+        const { axis, indices } = s.coverLines;
+        if (axis === 'col') return indices.includes(col);
+        if (axis === 'row') return indices.includes(row);
+        return false;
+      },
+
       statLabelPrimary() {
         if (this.selectedAlgorithm === 'constraint') return '✦ Eliminations';
         if (this.selectedAlgorithm === 'human' || this.selectedAlgorithm === 'human-v2' || this.selectedAlgorithm === 'human-v3') return '✦ Deductions';

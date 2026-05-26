@@ -369,3 +369,23 @@ button {
     line-height: 1.1 !important;
   }
 }
+
+/* === Fish technique highlights (X-Wing / Swordfish) === */
+
+.fish-base {
+  border: 2px solid #f59e0b !important;
+  background-color: #fffbeb !important;
+}
+
+.dark .fish-base {
+  border-color: #d97706 !important;
+  background-color: #1c1200 !important;
+}
+
+.fish-cover {
+  background-color: rgba(251, 191, 36, 0.15) !important;
+}
+
+.dark .fish-cover {
+  background-color: rgba(217, 119, 6, 0.12) !important;
+}

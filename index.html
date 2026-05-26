@@ -70,6 +70,8 @@
             'bg-violet-200 dark:bg-violet-900 text-violet-950 dark:text-violet-100': isGuessCell(cell.row, cell.col),
             'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300': isBacktracked(cell.row, cell.col) || isContradictionCell(cell.row, cell.col),
             'finish-flash': finishFlash && cellKind(cell.row, cell.col) !== 'given',
+            'fish-base': isFishBaseCell(cell.row, cell.col),
+            'fish-cover': isFishCoverLine(cell.row, cell.col),
           }"
         >
           <template x-if="cell.value">
