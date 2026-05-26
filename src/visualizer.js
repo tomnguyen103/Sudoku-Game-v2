@@ -6,7 +6,7 @@
   root.PLAYBACK_SPEEDS = api.PLAYBACK_SPEEDS;
   root.sudokuGame = api.sudokuGame;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function createVisualizerModule(solver, generator) {
-  const { createBacktrackingTrace, createMrvTrace, createConstraintPropagationTrace, createHumanLogicTrace, createHumanLogicV2Trace, createHumanLogicV3Trace } = solver;
+  const { createBacktrackingTrace, createMrvTrace, createConstraintPropagationTrace, createHumanLogicTrace, createHumanLogicV2Trace, createHumanLogicV3Trace, createSimulatedAnnealingTrace } = solver;
   const { generateTestPuzzle } = generator;
 
   const TRACE_BUILDERS = {
@@ -16,6 +16,7 @@
     human: createHumanLogicTrace,
     'human-v2': createHumanLogicV2Trace,
     'human-v3': createHumanLogicV3Trace,
+    sa: createSimulatedAnnealingTrace,
   };
 
   const ALGORITHM_LABELS = {
@@ -25,6 +26,7 @@
     human: 'Human Logic Solver',
     'human-v2': 'Human Logic Solver v2',
     'human-v3': 'Human Logic Solver v3',
+    sa: 'Simulated Annealing',
   };
 
   // Base step delay: smooth animation at 1x, scales by integer factors
@@ -62,6 +64,9 @@
       _elapsedMs: 0,
       _computeDurationMs: 0,
       selectedAlgorithm: 'backtracking',
+      swapCount: 0,
+      conflictCount: 0,
+      saAttempt: 0,
 
       init() {
         this.darkMode = localStorage.getItem('sudoku-dark') === 'true';
@@ -94,6 +99,9 @@
             this._runStartTime = null;
             this._elapsedMs = 0;
             this._computeDurationMs = 0;
+            this.swapCount = 0;
+            this.conflictCount = 0;
+            this.saAttempt = 0;
             this.status = 'ready';
           } catch (_) {
             this.status = 'error';
@@ -188,6 +196,12 @@
             this.eliminationCount += step.eliminated.length;
           } else if (step.type === 'human-eliminate') {
             this.eliminationCount += step.eliminated.length;
+          } else if (step.type === 'sa-swap') {
+            this.swapCount++;
+            this.conflictCount = step.conflicts;
+          } else if (step.type === 'sa-fill' || step.type === 'sa-restart') {
+            this.conflictCount = step.conflicts;
+            this.saAttempt = step.attempt;
           }
         }
 
@@ -227,6 +241,9 @@
         this._runStartTime = null;
         this._elapsedMs = 0;
         this._computeDurationMs = 0;
+        this.swapCount = 0;
+        this.conflictCount = 0;
+        this.saAttempt = 0;
         this.status = 'ready';
       },
 
@@ -286,6 +303,15 @@
         if (this.status === 'running' && this.currentStep?.type === 'human-eliminate') {
           return `${this.currentStep.strategy}: removing ${this.currentStep.eliminated.length} candidates.`;
         }
+        if (this.status === 'running' && this.currentStep?.type === 'sa-fill') {
+          return `Simulated Annealing: board filled (attempt ${this.currentStep.attempt}) — ${this.currentStep.conflicts} conflicts.`;
+        }
+        if (this.status === 'running' && this.currentStep?.type === 'sa-swap') {
+          return `Accepted swap — ${this.currentStep.conflicts} conflicts remaining.`;
+        }
+        if (this.status === 'running' && this.currentStep?.type === 'sa-restart') {
+          return `Restarting… attempt ${this.currentStep.attempt}.`;
+        }
         if (this.status === 'paused') return 'Solver paused.';
         if (this.status === 'stuck') return `${ALGORITHM_LABELS[this.selectedAlgorithm] || 'The solver'} is stuck and needs more strategies.`;
         if (this.status === 'solved') return `Solved by ${ALGORITHM_LABELS[this.selectedAlgorithm] || 'the solver'}.`;
@@ -300,6 +326,7 @@
           human: '⬡ Human Logic',
           'human-v2': '⬡ Human Logic v2',
           'human-v3': '⬡ Human Logic v3',
+          sa: '⬡ Simulated Annealing',
         };
         return badges[this.selectedAlgorithm] || this.selectedAlgorithm;
       },
@@ -321,6 +348,7 @@
           human: 'Human Logic Visualizer',
           'human-v2': 'Human Logic v2 Visualizer',
           'human-v3': 'Human Logic v3 Visualizer',
+          sa: 'Simulated Annealing Visualizer',
         };
         return labels[this.selectedAlgorithm] || 'Algorithm Visualizer';
       },
@@ -371,27 +399,42 @@
         return false;
       },
 
+      isSaSwapCell(row, col) {
+        if (!this.currentStep) return false;
+        const s = this.currentStep;
+        if (s.type !== 'sa-swap') return false;
+        return (s.row1 === row && s.col1 === col) || (s.row2 === row && s.col2 === col);
+      },
+
+      isSaRestartFlash() {
+        return this.currentStep?.type === 'sa-restart';
+      },
+
       statLabelPrimary() {
         if (this.selectedAlgorithm === 'constraint') return '✦ Eliminations';
         if (this.selectedAlgorithm === 'human' || this.selectedAlgorithm === 'human-v2' || this.selectedAlgorithm === 'human-v3') return '✦ Deductions';
+        if (this.selectedAlgorithm === 'sa') return '✦ Swaps';
         return '✦ Placed';
       },
 
       statLabelSecondary() {
         if (this.selectedAlgorithm === 'constraint') return '↯ Guesses';
         if (this.selectedAlgorithm === 'human' || this.selectedAlgorithm === 'human-v2' || this.selectedAlgorithm === 'human-v3') return '↯ Eliminations';
+        if (this.selectedAlgorithm === 'sa') return '↯ Conflicts';
         return '↩ Backtracks';
       },
 
       statValuePrimary() {
         if (this.selectedAlgorithm === 'constraint') return this.eliminationCount;
         if (this.selectedAlgorithm === 'human' || this.selectedAlgorithm === 'human-v2' || this.selectedAlgorithm === 'human-v3') return this.placedCount;
+        if (this.selectedAlgorithm === 'sa') return this.swapCount;
         return this.placedCount;
       },
 
       statValueSecondary() {
         if (this.selectedAlgorithm === 'constraint') return this.guessCount;
         if (this.selectedAlgorithm === 'human' || this.selectedAlgorithm === 'human-v2' || this.selectedAlgorithm === 'human-v3') return this.eliminationCount;
+        if (this.selectedAlgorithm === 'sa') return this.conflictCount;
         return this.backtrackedCount;
       },
 
@@ -415,16 +458,39 @@
           nextRow[step.col] = step.type === 'place' ? step.value : 0;
           this.board = this.board.map((row, index) => index === step.row ? nextRow : row);
         } else {
-          if (step.type === 'propagate') this.eliminationCount += step.eliminated.length;
-          else if (step.type === 'guess') this.guessCount++;
-          else if (step.type === 'human-place') {
+          if (step.type === 'propagate') {
+            this.eliminationCount += step.eliminated.length;
+            this.currentSnapshot = step.snapshot;
+            this.board = step.snapshot.map(row => row.map(cell => cell.length === 1 ? cell[0] : 0));
+          } else if (step.type === 'guess') {
+            this.guessCount++;
+            this.currentSnapshot = step.snapshot;
+            this.board = step.snapshot.map(row => row.map(cell => cell.length === 1 ? cell[0] : 0));
+          } else if (step.type === 'human-place') {
             this.placedCount++;
             this.eliminationCount += step.eliminated.length;
+            this.currentSnapshot = step.snapshot;
+            this.board = step.snapshot.map(row => row.map(cell => cell.length === 1 ? cell[0] : 0));
           } else if (step.type === 'human-eliminate') {
             this.eliminationCount += step.eliminated.length;
+            this.currentSnapshot = step.snapshot;
+            this.board = step.snapshot.map(row => row.map(cell => cell.length === 1 ? cell[0] : 0));
+          } else if (step.type === 'sa-fill') {
+            this.conflictCount = step.conflicts;
+            this.saAttempt = step.attempt;
+            this.board = step.board.map(r => [...r]);
+          } else if (step.type === 'sa-swap') {
+            this.swapCount++;
+            this.conflictCount = step.conflicts;
+            this.board = step.board.map(r => [...r]);
+          } else if (step.type === 'sa-restart') {
+            this.saAttempt = step.attempt;
+            this.conflictCount = step.conflicts;
+            this.board = step.board.map(r => [...r]);
+          } else {
+            this.currentSnapshot = step.snapshot;
+            this.board = step.snapshot.map(row => row.map(cell => cell.length === 1 ? cell[0] : 0));
           }
-          this.currentSnapshot = step.snapshot;
-          this.board = step.snapshot.map(row => row.map(cell => cell.length === 1 ? cell[0] : 0));
         }
 
         this.currentStep = step;

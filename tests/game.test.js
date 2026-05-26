@@ -991,3 +991,61 @@ assert.strictEqual(badSaTrace.solved, false, 'SA: invalid board returns solved=f
 assert.deepStrictEqual(badSaTrace.steps, [], 'SA: invalid board returns empty steps');
 
 console.log('SA trace builder tests passed.');
+
+// ── SA visualizer state ──────────────────────────────────────────────────
+
+const saGame = sudokuGame();
+saGame.board = saBoard.map(r => [...r]);
+saGame.initialBoard = saBoard.map(r => [...r]);
+saGame.locked = saBoard.map(r => r.map(v => v !== 0));
+saGame.selectedAlgorithm = 'sa';
+
+assert.strictEqual(saGame.statLabelPrimary(), '✦ Swaps', 'SA: primary stat label');
+assert.strictEqual(saGame.statLabelSecondary(), '↯ Conflicts', 'SA: secondary stat label');
+assert.strictEqual(saGame.statValuePrimary(), 0, 'SA: primary stat value starts at 0');
+assert.strictEqual(saGame.statValueSecondary(), 0, 'SA: secondary stat value starts at 0');
+
+// sa-fill step
+const fakeFill = { type: 'sa-fill', attempt: 1, board: saBoard.map(r => [...r]), conflicts: 12 };
+saGame.steps = [fakeFill];
+saGame.stepIndex = 0;
+saGame._applyNextStep();
+assert.strictEqual(saGame.conflictCount, 12, 'SA: conflictCount set by sa-fill');
+assert.strictEqual(saGame.saAttempt, 1, 'SA: saAttempt set by sa-fill');
+
+// sa-swap step
+const swapBoard = saBoard.map(r => r.map(v => v === 0 ? 1 : v));
+const fakeSwap = {
+  type: 'sa-swap',
+  row1: 0, col1: 2, row2: 0, col2: 3,
+  val1: 2, val2: 4,
+  conflicts: 10,
+  temperature: 1.9,
+  board: swapBoard,
+};
+saGame.steps = [fakeSwap];
+saGame.stepIndex = 0;
+saGame._applyNextStep();
+assert.strictEqual(saGame.swapCount, 1, 'SA: swapCount incremented by sa-swap');
+assert.strictEqual(saGame.conflictCount, 10, 'SA: conflictCount updated by sa-swap');
+
+// sa-restart step
+const fakeRestart = { type: 'sa-restart', attempt: 2, board: saBoard.map(r => [...r]), conflicts: 14 };
+saGame.steps = [fakeRestart];
+saGame.stepIndex = 0;
+saGame._applyNextStep();
+assert.strictEqual(saGame.saAttempt, 2, 'SA: saAttempt updated by sa-restart');
+assert.strictEqual(saGame.conflictCount, 14, 'SA: conflictCount updated by sa-restart');
+
+// resetPuzzle zeroes SA fields
+saGame.resetPuzzle();
+assert.strictEqual(saGame.swapCount, 0, 'SA: swapCount zeroed on reset');
+assert.strictEqual(saGame.conflictCount, 0, 'SA: conflictCount zeroed on reset');
+assert.strictEqual(saGame.saAttempt, 0, 'SA: saAttempt zeroed on reset');
+
+// _buildTrace must not throw and must return steps
+saGame.selectedAlgorithm = 'sa';
+const builtTrace = saGame._buildTrace(saBoard);
+assert.ok(Array.isArray(builtTrace.steps), 'SA: _buildTrace returns steps array');
+
+console.log('SA visualizer state tests passed.');
