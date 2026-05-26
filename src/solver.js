@@ -830,6 +830,157 @@
     return count;
   }
 
+  function createSimulatedAnnealingTrace(board) {
+    if (!hasValidGivens(board)) {
+      return { solved: false, steps: [], solvedBoard: null };
+    }
+
+    const steps = [];
+
+    function countConflicts(b) {
+      let conflicts = 0;
+      for (let i = 0; i < 9; i++) {
+        const rowSeen = new Set();
+        const colSeen = new Set();
+        for (let j = 0; j < 9; j++) {
+          const rv = b[i][j];
+          if (rv) { if (rowSeen.has(rv)) conflicts++; else rowSeen.add(rv); }
+          const cv = b[j][i];
+          if (cv) { if (colSeen.has(cv)) conflicts++; else colSeen.add(cv); }
+        }
+      }
+      return conflicts;
+    }
+
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+      }
+    }
+
+    function boxCompleteFill(clues) {
+      const b = clues.map(r => [...r]);
+      for (let box = 0; box < 9; box++) {
+        const br = Math.floor(box / 3) * 3;
+        const bc = (box % 3) * 3;
+        const present = new Set();
+        const emptyCells = [];
+        for (let dr = 0; dr < 3; dr++) {
+          for (let dc = 0; dc < 3; dc++) {
+            const r = br + dr, c = bc + dc;
+            if (clues[r][c] !== 0) present.add(clues[r][c]);
+            else emptyCells.push([r, c]);
+          }
+        }
+        const missing = [1,2,3,4,5,6,7,8,9].filter(d => !present.has(d));
+        shuffle(missing);
+        emptyCells.forEach(([r, c], idx) => { b[r][c] = missing[idx]; });
+      }
+      return b;
+    }
+
+    function buildNonClueCellsByBox(clues) {
+      const byBox = Array.from({ length: 9 }, () => []);
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (clues[r][c] === 0) {
+            const box = Math.floor(r / 3) * 3 + Math.floor(c / 3);
+            byBox[box].push([r, c]);
+          }
+        }
+      }
+      return byBox;
+    }
+
+    const T_INITIAL   = 2.0;
+    const T_MIN       = 0.005;
+    const ALPHA       = 0.99995;
+    const MAX_ITER    = 500000;
+    const MAX_RESTART = 5;
+
+    const nonClueByBox = buildNonClueCellsByBox(board);
+    const swappableBoxes = nonClueByBox
+      .map((cells, i) => ({ i, cells }))
+      .filter(({ cells }) => cells.length >= 2);
+
+    if (swappableBoxes.length === 0) {
+      const solved = countConflicts(board) === 0;
+      return { solved, steps: [], solvedBoard: solved ? board.map(r => [...r]) : null };
+    }
+
+    let working = boxCompleteFill(board);
+    let conflicts = countConflicts(working);
+
+    steps.push({
+      type: 'sa-fill',
+      attempt: 1,
+      board: working.map(r => [...r]),
+      conflicts,
+    });
+
+    let T = T_INITIAL;
+    let attempt = 1;
+
+    for (let iter = 0; iter < MAX_ITER && conflicts > 0; iter++) {
+      T *= ALPHA;
+
+      if (T < T_MIN) {
+        if (attempt >= MAX_RESTART) break;
+        attempt++;
+        working = boxCompleteFill(board);
+        conflicts = countConflicts(working);
+        T = T_INITIAL;
+        steps.push({
+          type: 'sa-restart',
+          attempt,
+          board: working.map(r => [...r]),
+          conflicts,
+        });
+        continue;
+      }
+
+      const { cells } = swappableBoxes[Math.floor(Math.random() * swappableBoxes.length)];
+      const i1 = Math.floor(Math.random() * cells.length);
+      let i2 = Math.floor(Math.random() * (cells.length - 1));
+      if (i2 >= i1) i2++;
+      const [r1, c1] = cells[i1];
+      const [r2, c2] = cells[i2];
+
+      const v1 = working[r1][c1];
+      const v2 = working[r2][c2];
+      working[r1][c1] = v2;
+      working[r2][c2] = v1;
+
+      const newConflicts = countConflicts(working);
+      const dE = newConflicts - conflicts;
+
+      if (dE < 0 || Math.random() < Math.exp(-dE / T)) {
+        conflicts = newConflicts;
+        steps.push({
+          type: 'sa-swap',
+          row1: r1, col1: c1,
+          row2: r2, col2: c2,
+          val1: v2,
+          val2: v1,
+          conflicts,
+          temperature: Math.round(T * 10000) / 10000,
+          board: working.map(r => [...r]),
+        });
+      } else {
+        working[r1][c1] = v1;
+        working[r2][c2] = v2;
+      }
+    }
+
+    const solved = conflicts === 0;
+    return {
+      solved,
+      steps,
+      solvedBoard: solved ? working.map(r => [...r]) : null,
+    };
+  }
+
   return {
     isValid,
     solvePuzzle,
@@ -841,6 +992,7 @@
     createHumanLogicTrace,
     createHumanLogicV2Trace,
     createHumanLogicV3Trace,
+    createSimulatedAnnealingTrace,
     countSolutions,
   };
 });

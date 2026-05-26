@@ -11,6 +11,7 @@ const {
   createHumanLogicTrace,
   createHumanLogicV2Trace,
   createHumanLogicV3Trace,
+  createSimulatedAnnealingTrace,
   generateTestPuzzle,
   PLAYBACK_SPEEDS,
   sudokuGame,
@@ -907,3 +908,69 @@ console.log('All solving-time lifecycle tests passed.');
 
 // human logic v3 — import guard
 assert.strictEqual(typeof createHumanLogicV3Trace, 'function', 'createHumanLogicV3Trace is exported');
+
+// ── Simulated Annealing trace builder ────────────────────────────────────
+
+const saBoard = [
+  [5,3,0,0,7,0,0,0,0],
+  [6,0,0,1,9,5,0,0,0],
+  [0,9,8,0,0,0,0,6,0],
+  [8,0,0,0,6,0,0,0,3],
+  [4,0,0,8,0,3,0,0,1],
+  [7,0,0,0,2,0,0,0,6],
+  [0,6,0,0,0,0,2,8,0],
+  [0,0,0,4,1,9,0,0,5],
+  [0,0,0,0,8,0,0,7,9],
+];
+
+const saTrace = createSimulatedAnnealingTrace(saBoard);
+
+assert.ok(typeof saTrace.solved === 'boolean', 'SA: solved is boolean');
+assert.ok(Array.isArray(saTrace.steps), 'SA: steps is array');
+assert.ok(saTrace.steps.length > 0, 'SA: steps is non-empty');
+assert.strictEqual(saTrace.steps[0].type, 'sa-fill', 'SA: first step is sa-fill');
+
+const SA_VALID_TYPES = new Set(['sa-fill', 'sa-swap', 'sa-restart']);
+for (const step of saTrace.steps) {
+  assert.ok(SA_VALID_TYPES.has(step.type), `SA: unknown step type "${step.type}"`);
+}
+
+const fillStep = saTrace.steps[0];
+assert.strictEqual(fillStep.board.flat().filter(v => v === 0).length, 0, 'SA: sa-fill has no empty cells');
+assert.ok(typeof fillStep.conflicts === 'number' && fillStep.conflicts >= 0, 'SA: sa-fill has numeric conflicts');
+assert.strictEqual(fillStep.attempt, 1, 'SA: first sa-fill has attempt=1');
+
+const swapSteps = saTrace.steps.filter(s => s.type === 'sa-swap');
+assert.ok(swapSteps.length > 0, 'SA: at least one sa-swap step');
+for (const s of swapSteps) {
+  assert.ok(s.row1 >= 0 && s.row1 <= 8, 'SA: sa-swap row1 in range');
+  assert.ok(s.col1 >= 0 && s.col1 <= 8, 'SA: sa-swap col1 in range');
+  assert.ok(s.row2 >= 0 && s.row2 <= 8, 'SA: sa-swap row2 in range');
+  assert.ok(s.col2 >= 0 && s.col2 <= 8, 'SA: sa-swap col2 in range');
+  assert.ok(s.val1 >= 1 && s.val1 <= 9, 'SA: sa-swap val1 in digit range');
+  assert.ok(s.val2 >= 1 && s.val2 <= 9, 'SA: sa-swap val2 in digit range');
+  assert.ok(typeof s.conflicts === 'number' && s.conflicts >= 0, 'SA: sa-swap conflicts non-negative');
+  assert.ok(typeof s.temperature === 'number' && s.temperature > 0, 'SA: sa-swap temperature positive');
+  assert.strictEqual(s.board.length, 9, 'SA: sa-swap board has 9 rows');
+  assert.strictEqual(s.board.flat().filter(v => v === 0).length, 0, 'SA: sa-swap board fully filled');
+}
+
+if (saTrace.solved) {
+  assert.ok(saTrace.solvedBoard !== null, 'SA: solved trace has solvedBoard');
+  assert.ok(hasValidGivens(saTrace.solvedBoard), 'SA: solvedBoard passes hasValidGivens');
+}
+
+const clueSet = new Set();
+for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) {
+  if (saBoard[r][c] !== 0) clueSet.add(`${r},${c}`);
+}
+for (const s of swapSteps) {
+  assert.ok(!clueSet.has(`${s.row1},${s.col1}`), `SA: clue cell (${s.row1},${s.col1}) was swapped`);
+  assert.ok(!clueSet.has(`${s.row2},${s.col2}`), `SA: clue cell (${s.row2},${s.col2}) was swapped`);
+}
+
+const badSaTrace = createSimulatedAnnealingTrace([[0,0,0,0,0,0,0,0,0]]);
+assert.strictEqual(badSaTrace.solved, false, 'SA: invalid board returns solved=false');
+assert.deepStrictEqual(badSaTrace.steps, [], 'SA: invalid board returns empty steps');
+
+console.log('SA trace builder tests passed.');
