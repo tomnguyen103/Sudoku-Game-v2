@@ -430,3 +430,15 @@ The trace function copies the input board before solving so it does not mutate t
 - Visual highlights: `.fish-base` (amber border + background on corner cells) and `.fish-cover` (subtle amber stripe on covered columns/rows). Base cells receive `fish-base` only; cover cells that are NOT base cells receive `fish-cover` only.
 - Algorithm key: `'human-v3'` registered in `TRACE_BUILDERS`, `ALGORITHM_LABELS`, all stat label/value methods, `subtitleText()`, and `algorithmBadgeLabel()`.
 - SW cache bumped to `sudoku-v34`; asset query strings bumped to `?v=20260526-humanv3`.
+
+### 2026-05-26 — Simulated Annealing algorithm
+
+- **Decision — Approach:** `createSimulatedAnnealingTrace` added to `src/solver.js` following the existing UMD module pattern. No new files created.
+- **Decision — Box-complete fill:** Empty cells in each box are filled with that box's missing digits in random shuffled order. This guarantees zero box conflicts from the start; only row and column conflicts remain. Reduces initial conflict count significantly.
+- **Decision — Accepted swaps only (throttled):** Only every 10th accepted swap emits a `sa-swap` step (`STEP_STRIDE = 10`). Rejected swaps are never recorded. Keeps step counts in the 2K–4K range and prevents memory exhaustion from board snapshots on long runs.
+- **Decision — Cooling schedule:** T_initial=2.0, T_min=0.005, alpha=0.99995 (~138K iterations per run). Hard cap at 500K iterations and 5 restarts prevents infinite loops.
+- **Decision — Three step types:** `sa-fill` (initial board after box-complete fill), `sa-swap` (accepted swap with board snapshot), `sa-restart` (fresh fill after T reaches T_min). Restarts are visible in the status text.
+- **Decision — Stat tiles:** Primary = Swaps (accepted swap count ÷ STEP_STRIDE), Secondary = Conflicts (counts down toward 0). Conflicts as a live progress indicator is immediately readable.
+- **Decision — No pencil marks:** SA steps carry a full `board` snapshot instead of a candidate `snapshot` array. `currentSnapshot` is never set for SA steps — the pencil-mark overlay does not appear.
+- **Tradeoff — Probabilistic:** SA does not guarantee a solution. Up to 5 restarts attempted. `stuck` status used if all fail.
+- **SW cache:** bumped from `sudoku-v34` to `sudoku-v35`. Query strings updated to `?v=20260526-sa`.
