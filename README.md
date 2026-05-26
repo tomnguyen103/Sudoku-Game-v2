@@ -123,31 +123,45 @@ Human Logic Solver v3 extends v2 with fish elimination techniques: **X-Wing** an
 
 ## Algorithm Comparison
 
-The app currently implements algorithms #1, #2, #3, and three versions of #6 below. The table compares them with other algorithms that can solve a 9x9 Sudoku, as a reference for possible future additions. Because this app is a *visualizer*, an algorithm's value here depends not only on speed but on whether its steps produce a watchable cell-by-cell trace.
+The app currently implements Backtracking DFS, Backtracking + MRV, Constraint Propagation, and Human Logic v1/v2/v3. The table below covers all implemented algorithms plus Simulated Annealing (the next candidate) and two non-viable options kept for reference. Because this app is a *visualizer*, an algorithm's value depends not only on speed but on whether its steps produce a watchable cell-by-cell trace.
 
-| # | Name | Description | Method | Time complexity | Solving time (typical 9x9) | Difficulty rank (easy to hard) |
-|---|------|-------------|--------|-----------------|----------------------------|---------------------------------|
-| 1 | **Naive backtracking** *(current)* | First empty cell, try 1-9, recurse, undo on failure | Brute-force depth-first search | O(9^m), m = empty cells | ms to seconds; spikes on hard | Easy: fast - Medium: ok - Hard: many backtracks, can stall |
-| 2 | **Backtracking + MRV heuristic** | Always fill the empty cell with the *fewest* legal candidates next | DFS + minimum-remaining-values ordering | O(9^m) worst case, hugely reduced in practice | ms across all difficulties | Easy: instant - Medium: instant - Hard: still fast, few backtracks |
-| 3 | **Constraint propagation + search** (Norvig) *(current)* | Eliminate candidates (naked/hidden singles) until stuck, then MRV search | AC-3-style propagation + DFS | Near-linear on easy, low-poly on hard | sub-ms to low ms | Easy: solved by propagation alone - Hard: fast |
-| 4 | **Dancing Links / DLX** (Algorithm X) | Model as exact-cover matrix; cover/uncover columns via linked lists | Knuth's Algorithm X | Exponential worst case, extremely fast in practice | microseconds to ms | Uniformly very fast at all difficulties |
-| 5 | **SAT solver** | Encode rules as boolean CNF, hand to a SAT engine | Reduction + DPLL/CDCL | NP-complete; solver-dependent | ms (incl. encoding overhead) | Uniformly fast; overkill for 9x9 |
-| 6 | **Human logic strategies** *(current)* | Apply named techniques: singles, pairs, pointing, box-line, X-Wing, and Swordfish | Rule-based deduction | Polynomial per pass | ms, but cannot finish puzzles needing guessing | Easy: often solves or progresses - Hard: can stall without fallback |
-| 7 | **Simulated annealing / genetic** | Random fill, swap cells to minimize conflicts | Stochastic optimization | No guarantee; probabilistic | seconds; may not converge | Inconsistent; worse on hard, can fail |
+Variables used: **m** = empty cells (36 Easy / 46 Medium / 52 Hard), **n** = 81 total cells, **d** = 9 digits, **b** = effective branching factor, **P** = number of technique passes, **r** = 9 rows/cols, **R** = expected restarts, **N** = cooling iterations.
 
-### Why these three are implemented
+### Implemented algorithms
 
-Backtracking DFS (#1) is the project's original baseline. Backtracking + MRV (#2) was added next because it offers the best learning value for the least risk:
+| Algorithm | Worst-case complexity | How the cost is derived | Typical steps Easy / Hard | Guarantees solution? | Visualization quality |
+|---|---|---|---|---|---|
+| **Backtracking DFS** | O(9^m) | 9 digit choices per empty cell; tree depth = m; validity check = O(1) per node | ~200 / ~5,000–50,000 | Yes | Medium — linear left-to-right march, dramatic step count on Hard |
+| **Backtracking + MRV** | O(b^m × m) | Same DFS tree but effective b ≈ 1.2–2 because forced cells (b=1) are resolved first; O(m) scan per step to find MRV cell | ~20 / ~50–200 | Yes | Good — visible jump to most-constrained cell; stark contrast with DFS on Hard |
+| **Constraint Propagation** | O(n·d³ + b^r·r) | AC-3 propagation: O(edges·d²) = O(n×d³) ≈ 59K ops; search fallback only on remaining r hard cells | ~81 propagation-only / ~200–500 | Yes | Excellent — pencil marks shrink and ripple; deduction process is watchable |
+| **Human Logic v1** | O(P·n·d) | P passes × 81 cells × 9 digits; naked/hidden single scan = O(n·d) per pass | Solves most / often stalls | No — stops when stuck | Excellent — named strategy per step; tutor-style |
+| **Human Logic v2** | O(P·n·d²) | Adds pair detection O(n²) per unit; box-line reduction O(n·d) | Solves most / sometimes stalls | No | Excellent |
+| **Human Logic v3** | O(P·(n·d + d·r³)) | Adds X-Wing O(d·r²) = 324 checks/pass; Swordfish O(d·r³) = 756 checks/pass | Solves / stalls on hardest | No | Excellent |
 
-- It reuses the existing `place`/`backtrack` step vocabulary, so no new render logic is needed.
-- It is a small, dependency-free change with no build step.
-- The contrast with naive backtracking is dramatic and educational on Hard puzzles.
+### Candidate next algorithm
 
-Constraint Propagation (#3) was added because it is visually distinct from the two backtracking variants: instead of filling one cell at a time, it shows each empty cell's candidate set (pencil marks) shrinking and rippling as naked and hidden singles propagate, then falls back to a fail-first search only when propagation stalls. This required a new render path and new step vocabulary (`propagate`, `guess`, `contradiction`), but it makes the deduction process — not just the search — watchable.
+| Algorithm | Worst-case complexity | How the cost is derived | Typical iterations Easy / Hard | Guarantees solution? | Visualization quality |
+|---|---|---|---|---|---|
+| **Simulated Annealing** | O(R × N) | Each iteration O(1): pick box, swap 2 non-clue cells, recount 4 rows+cols. N = log(T_min/T_initial) / log(α). Example: T_initial=2, T_min=0.001, α=0.99995 → N ≈ 152,000. R ≈ 1–3 restarts. **Cost is independent of m** — difficulty barely affects iteration count. | ~50K–100K / ~100K–500K | Probabilistic (random restarts) | Excellent — board fully filled from frame 1; every frame shows a swap, conflict count, and temperature; completely distinct from all other modes |
 
-Human Logic (#6) was added next because it turns candidate changes into named, teachable deductions. The original mode stays intentionally small: naked singles, hidden singles, and naked pairs. Human Logic v2 adds hidden pairs, pointing pairs/triples, and box-line reduction while still avoiding guessing. Human Logic v3 extends that with fish elimination techniques — X-Wing and Swordfish — which reason across two or three rows and columns simultaneously to eliminate candidates that single-unit rules cannot reach.
+### Non-viable options (reference only)
 
-The faster algorithms (DLX, SAT) remain future candidates rather than current features because their internal steps — column covering, clause propagation — do not map cleanly onto a 9x9 grid animation, so they would be opaque to watch.
+| Algorithm | Reason not implemented |
+|---|---|
+| **Dancing Links / DLX** | Internal steps are linked-list cover/uncover operations — no natural mapping to grid cells; the board would appear frozen between solutions |
+| **SAT solver** | Encodes 729 boolean variables; clause propagation steps have no grid-cell interpretation; solver is a black box from the visualizer's perspective |
+
+### Why each algorithm was added
+
+**Backtracking DFS** is the project baseline — the simplest correct solver, and the most dramatic failure case on Hard puzzles.
+
+**Backtracking + MRV** reuses the same `place`/`backtrack` vocabulary with no new render path. The contrast with DFS on Hard is immediately visible and educational: the MRV highlight jumps to the most-constrained cell instead of marching left to right.
+
+**Constraint Propagation** introduced a second render path (`propagate`, `guess`, `contradiction`) and candidate snapshots so pencil marks appear in every empty cell. Easy puzzles often solve by propagation alone — no guessing at all — which is a qualitatively different visual from backtracking.
+
+**Human Logic v1/v2/v3** reuse the candidate snapshot infrastructure and add named strategy labels per step, turning elimination events into teachable moments. Each version adds a harder class of technique while still refusing to guess.
+
+**Simulated Annealing** (planned) would introduce a third paradigm — stochastic optimization — where the board starts fully filled and values swap rather than fill. It requires new step types (`fill`, `swap`, `accept`, `reject`) but reuses the existing trace-replay infrastructure. The key visual distinction: every cell has a value from frame 1, conflicts are the progress signal, and the solver can temporarily get worse before getting better.
 
 ## Tech Stack
 
