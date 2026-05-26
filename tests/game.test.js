@@ -558,6 +558,9 @@ assert.strictEqual(cpLabelGame.statValueSecondary(), 3, 'CP secondary value is t
 cpLabelGame.selectedAlgorithm = 'human';
 assert.strictEqual(cpLabelGame.statLabelPrimary().includes('Deductions'), true, 'human logic primary label is Deductions');
 assert.strictEqual(cpLabelGame.statLabelSecondary().includes('Eliminations'), true, 'human logic secondary label is Eliminations');
+cpLabelGame.selectedAlgorithm = 'human-v3';
+assert.strictEqual(cpLabelGame.statLabelPrimary().includes('Deductions'), true, 'human-v3 primary label is Deductions');
+assert.strictEqual(cpLabelGame.statLabelSecondary().includes('Eliminations'), true, 'human-v3 secondary label is Eliminations');
 
 const humanRunGame = sudokuGame();
 humanRunGame.initialBoard = unsolved.map(row => [...row]);
@@ -584,6 +587,20 @@ assert.deepStrictEqual(
   createHumanLogicV2Trace(unsolved).steps.map(s => s.type),
   'runSolver builds the human logic v2 trace when human logic v2 is selected'
 );
+
+const humanV3RunGame = sudokuGame();
+humanV3RunGame.initialBoard = unsolved.map(row => [...row]);
+humanV3RunGame.board = unsolved.map(row => [...row]);
+humanV3RunGame.locked = Array.from({ length: 9 }, () => Array(9).fill(false));
+humanV3RunGame.selectedAlgorithm = 'human-v3';
+humanV3RunGame.runSolver();
+clearInterval(humanV3RunGame._interval);
+assert.deepStrictEqual(
+  humanV3RunGame.steps.map(s => s.type),
+  createHumanLogicV3Trace(unsolved).steps.map(s => s.type),
+  'runSolver builds the human logic v3 trace when human-v3 is selected'
+);
+console.log('Human logic v3 visualizer integration tests passed.');
 
 const humanStuckGame = sudokuGame();
 humanStuckGame.initialBoard = nakedPairPuzzle.map(row => [...row]);

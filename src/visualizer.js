@@ -6,7 +6,7 @@
   root.PLAYBACK_SPEEDS = api.PLAYBACK_SPEEDS;
   root.sudokuGame = api.sudokuGame;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function createVisualizerModule(solver, generator) {
-  const { createBacktrackingTrace, createMrvTrace, createConstraintPropagationTrace, createHumanLogicTrace, createHumanLogicV2Trace } = solver;
+  const { createBacktrackingTrace, createMrvTrace, createConstraintPropagationTrace, createHumanLogicTrace, createHumanLogicV2Trace, createHumanLogicV3Trace } = solver;
   const { generateTestPuzzle } = generator;
 
   const TRACE_BUILDERS = {
@@ -15,6 +15,7 @@
     constraint: createConstraintPropagationTrace,
     human: createHumanLogicTrace,
     'human-v2': createHumanLogicV2Trace,
+    'human-v3': createHumanLogicV3Trace,
   };
 
   const ALGORITHM_LABELS = {
@@ -23,6 +24,7 @@
     constraint: 'Constraint Propagation',
     human: 'Human Logic Solver',
     'human-v2': 'Human Logic Solver v2',
+    'human-v3': 'Human Logic Solver v3',
   };
 
   // Base step delay: smooth animation at 1x, scales by integer factors
@@ -297,6 +299,7 @@
           constraint: '⬡ Constraint Propagation',
           human: '⬡ Human Logic',
           'human-v2': '⬡ Human Logic v2',
+          'human-v3': '⬡ Human Logic v3',
         };
         return badges[this.selectedAlgorithm] || this.selectedAlgorithm;
       },
@@ -317,6 +320,7 @@
           constraint: 'Constraint Propagation Visualizer',
           human: 'Human Logic Visualizer',
           'human-v2': 'Human Logic v2 Visualizer',
+          'human-v3': 'Human Logic v3 Visualizer',
         };
         return labels[this.selectedAlgorithm] || 'Algorithm Visualizer';
       },
@@ -350,25 +354,25 @@
 
       statLabelPrimary() {
         if (this.selectedAlgorithm === 'constraint') return '✦ Eliminations';
-        if (this.selectedAlgorithm === 'human' || this.selectedAlgorithm === 'human-v2') return '✦ Deductions';
+        if (this.selectedAlgorithm === 'human' || this.selectedAlgorithm === 'human-v2' || this.selectedAlgorithm === 'human-v3') return '✦ Deductions';
         return '✦ Placed';
       },
 
       statLabelSecondary() {
         if (this.selectedAlgorithm === 'constraint') return '↯ Guesses';
-        if (this.selectedAlgorithm === 'human' || this.selectedAlgorithm === 'human-v2') return '↯ Eliminations';
+        if (this.selectedAlgorithm === 'human' || this.selectedAlgorithm === 'human-v2' || this.selectedAlgorithm === 'human-v3') return '↯ Eliminations';
         return '↩ Backtracks';
       },
 
       statValuePrimary() {
         if (this.selectedAlgorithm === 'constraint') return this.eliminationCount;
-        if (this.selectedAlgorithm === 'human' || this.selectedAlgorithm === 'human-v2') return this.placedCount;
+        if (this.selectedAlgorithm === 'human' || this.selectedAlgorithm === 'human-v2' || this.selectedAlgorithm === 'human-v3') return this.placedCount;
         return this.placedCount;
       },
 
       statValueSecondary() {
         if (this.selectedAlgorithm === 'constraint') return this.guessCount;
-        if (this.selectedAlgorithm === 'human' || this.selectedAlgorithm === 'human-v2') return this.eliminationCount;
+        if (this.selectedAlgorithm === 'human' || this.selectedAlgorithm === 'human-v2' || this.selectedAlgorithm === 'human-v3') return this.eliminationCount;
         return this.backtrackedCount;
       },
 
