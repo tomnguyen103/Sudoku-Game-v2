@@ -20,15 +20,15 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Sudoku">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <script src="vendor/tailwindcss.js?v=20260525-finishexc"></script>
+  <script src="vendor/tailwindcss.js?v=20260526-humanv3"></script>
   <script>
     tailwind.config = { darkMode: 'class' };
   </script>
-  <script defer src="vendor/alpine.min.js?v=20260525-finishexc"></script>
-  <link rel="stylesheet" href="style.css?v=20260525-finishexc">
-  <script src="src/solver.js?v=20260525-finishexc"></script>
-  <script src="src/generator.js?v=20260525-finishexc"></script>
-  <script src="src/visualizer.js?v=20260525-finishexc"></script>
+  <script defer src="vendor/alpine.min.js?v=20260526-humanv3"></script>
+  <link rel="stylesheet" href="style.css?v=20260526-humanv3">
+  <script src="src/solver.js?v=20260526-humanv3"></script>
+  <script src="src/generator.js?v=20260526-humanv3"></script>
+  <script src="src/visualizer.js?v=20260526-humanv3"></script>
 </head>
 <body
   class="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-200 px-3 py-4 sm:p-5"
@@ -119,6 +119,7 @@
           <option value="constraint">⬡ Constraint Propagation</option>
           <option value="human">⬡ Human Logic Solver</option>
           <option value="human-v2">⬡ Human Logic Solver v2</option>
+          <option value="human-v3">⬡ Human Logic Solver v3</option>
         </select>
         <button
           @click="runSolver()"
