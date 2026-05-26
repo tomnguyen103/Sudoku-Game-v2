@@ -58,6 +58,7 @@
       traceSolved: false,
       _runStartTime: null,
       _elapsedMs: 0,
+      _computeDurationMs: 0,
       selectedAlgorithm: 'backtracking',
 
       init() {
@@ -90,6 +91,7 @@
             this.traceSolved = false;
             this._runStartTime = null;
             this._elapsedMs = 0;
+            this._computeDurationMs = 0;
             this.status = 'ready';
           } catch (_) {
             this.status = 'error';
@@ -123,7 +125,7 @@
         if (!this.steps.length || this.status === 'ready' || this.status === 'solved') {
           this._elapsedMs = 0;
           this._runStartTime = Date.now();
-          const trace = this._buildTrace(this.initialBoard);
+          const { trace, durationMs } = this._measureTrace(this.initialBoard);
           this.steps = trace.steps;
           this.solvedBoard = trace.solvedBoard;
           this.board = this.initialBoard.map(row => [...row]);
@@ -135,6 +137,7 @@
           this.guessCount = 0;
           this.currentSnapshot = null;
           this.traceSolved = trace.solved;
+          this._computeDurationMs = durationMs;
         } else {
           this._runStartTime = Date.now();
         }
@@ -161,10 +164,11 @@
 
         const completedStepCount = this.stepIndex;
         this._stopPlayback();
-        const trace = this._buildTrace(this.initialBoard);
+        const { trace, durationMs } = this._measureTrace(this.initialBoard);
         this.steps = trace.steps;
         this.solvedBoard = trace.solvedBoard;
         this.traceSolved = trace.solved;
+        this._computeDurationMs = durationMs;
 
         if (trace.solved && trace.solvedBoard) {
           const remainingStepCount = Math.max(trace.steps.length - Math.min(completedStepCount, trace.steps.length), 0);
@@ -201,6 +205,7 @@
         this.traceSolved = false;
         this._runStartTime = null;
         this._elapsedMs = 0;
+        this._computeDurationMs = 0;
         this.status = 'ready';
       },
 
@@ -280,6 +285,10 @@
       elapsedText() {
         const total = this._elapsedMs + (this._runStartTime ? Date.now() - this._runStartTime : 0);
         return (total / 1000).toFixed(2) + 's';
+      },
+
+      computeText() {
+        return (this._computeDurationMs / 1000).toFixed(3) + 's';
       },
 
       subtitleText() {
@@ -388,6 +397,15 @@
       _buildTrace(board) {
         const build = TRACE_BUILDERS[this.selectedAlgorithm] || createBacktrackingTrace;
         return build(board);
+      },
+
+      _measureTrace(board) {
+        const now = typeof performance !== 'undefined' && performance.now
+          ? () => performance.now()
+          : () => Date.now();
+        const started = now();
+        const trace = this._buildTrace(board);
+        return { trace, durationMs: Math.max(now() - started, 0) };
       },
 
       _stopPlayback() {

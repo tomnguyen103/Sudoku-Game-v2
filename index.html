@@ -12,15 +12,15 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Sudoku">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <script src="vendor/tailwindcss.js?v=20260525-humanv2"></script>
+  <script src="vendor/tailwindcss.js?v=20260525-computetime"></script>
   <script>
     tailwind.config = { darkMode: 'class' };
   </script>
-  <script defer src="vendor/alpine.min.js?v=20260525-humanv2"></script>
-  <link rel="stylesheet" href="style.css?v=20260525-humanv2">
-  <script src="src/solver.js?v=20260525-humanv2"></script>
-  <script src="src/generator.js?v=20260525-humanv2"></script>
-  <script src="src/visualizer.js?v=20260525-humanv2"></script>
+  <script defer src="vendor/alpine.min.js?v=20260525-computetime"></script>
+  <link rel="stylesheet" href="style.css?v=20260525-computetime">
+  <script src="src/solver.js?v=20260525-computetime"></script>
+  <script src="src/generator.js?v=20260525-computetime"></script>
+  <script src="src/visualizer.js?v=20260525-computetime"></script>
 </head>
 <body
   class="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-200 px-3 py-4 sm:p-5"
@@ -172,6 +172,10 @@
         <div class="stat-time mt-2">
           <div class="stat-label">⏱ Solving Time</div>
           <div class="stat-value" x-text="elapsedText()"></div>
+        </div>
+        <div class="stat-time mt-2">
+          <div class="stat-label">⏱ Compute Time</div>
+          <div class="stat-value" x-text="computeText()"></div>
         </div>
         <p class="text-xs text-center text-slate-500 dark:text-slate-400" x-text="statusText()"></p>
       </section>

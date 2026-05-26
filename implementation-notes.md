@@ -362,3 +362,37 @@ The trace function copies the input board before solving so it does not mutate t
 **Decision - Pre-push doc review:** `CLAUDE.md` now explicitly requires re-checking both `CLAUDE.md` and `implementation-notes.md` before every GitHub push request and updating them first when implementation, workflow, file structure, cache/deploy behavior, or key decisions changed.
 
 **Tradeoff:** This adds a small amount of process before each push, but it prevents the project guide and running notes from drifting behind the code.
+
+### 2026-05-25 - Playback time label clarification
+
+**Issue observed:** Comparing Human Logic Solver and Human Logic Solver v2 from the UI made v1 look faster on some hard puzzles. Investigation showed the displayed time was selected-speed animation playback duration, not raw solver compute time. V2 can emit more explainable elimination steps, so the replay can take longer even when v2 is logically stronger or solves at least as much of the board.
+
+**Verification:** A 200-puzzle hard-level sample showed v2 had slightly more average trace steps and playback duration (`47.915` vs `47.32` steps at 2x), while raw JavaScript trace generation stayed sub-millisecond on average for both modes. A prior 2,000-puzzle same-board comparison found no cases where v2 ended with fewer solved cells than v1.
+
+**Decision - UI wording:** Renamed the stat tile from `Solving Time` to `Playback Time` so users do not mistake selected-speed animation duration for algorithm compute performance.
+
+**Decision - Docs:** Updated `CLAUDE.md` and `README.md` to describe the time stat as playback time. `Finish Now` still projects the remaining selected-speed trace duration; only the wording changed.
+
+### 2026-05-25 - Solving time uses actual compute time
+
+**Issue observed:** Renaming the stat to `Playback Time` was accurate for the old implementation but did not satisfy the product goal. Viewers need the time stat to compare how long each algorithm actually takes to solve or trace the same Sudoku layout.
+
+**Decision - Measurement:** Replaced the playback timer with `_solveDurationMs`, measured around `_buildTrace()` via `performance.now()` with a `Date.now()` fallback. `elapsedText()` now displays this measured trace-generation time to three decimals.
+
+**Decision - UI wording:** Restored the stat label to `Solving Time`, now with corrected semantics. Playback speed still affects animation pacing only; it no longer changes the displayed algorithm time.
+
+**Decision - Finish Now:** `finishNow()` now recomputes the selected algorithm trace and records the measured solve duration. It no longer adds projected remaining playback duration.
+
+**Testing:** Updated unit tests to assert that `runSolver()` and `finishNow()` record measured solve duration, reset/new puzzle clear it, and final animation steps do not mutate it. Updated the browser smoke test to verify the visible label is `Solving Time`.
+
+### 2026-05-25 - Separate Solving Time and Compute Time
+
+**Issue observed:** A single time stat could not satisfy both viewer expectations. Users need `Solving Time` to behave like the current visual run timer (pause/resume and `Finish Now` projection), but also need a truthful raw algorithm timing for comparing DFS, MRV, Constraint Propagation, and Human Logic.
+
+**Decision - Two clocks:** Added a second status-card time stat, `Compute Time`. `Solving Time` again tracks selected-speed visual run duration through `_elapsedMs` and `_runStartTime`. `Compute Time` tracks `_computeDurationMs`, measured around `_buildTrace()` via `_measureTrace()`.
+
+**Decision - Pause behavior:** `Pause` stops playback and flushes the current live visual run segment into `_elapsedMs`. `Compute Time` does not change while paused.
+
+**Decision - Finish Now behavior:** `Finish Now` keeps the previous visual semantics: it stops playback, adds the remaining trace length multiplied by the current playback delay to `Solving Time`, advances to the end, and marks the run solved or stuck. It also recomputes the trace and records the current algorithm's measured `Compute Time`.
+
+**Testing:** Updated visualizer lifecycle tests for both clocks and updated the browser smoke test to assert `Solving Time` freezes on pause, `Compute Time` stays stable while paused, and both labels appear in the status card.

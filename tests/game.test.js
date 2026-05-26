@@ -583,21 +583,27 @@ const etGame = sudokuGame();
 assert.strictEqual(etGame.elapsedText(), '0.00s', 'elapsedText: initial value is 0.00s');
 
 etGame._elapsedMs = 3470;
-assert.strictEqual(etGame.elapsedText(), '3.47s', 'elapsedText: reflects accumulated _elapsedMs');
+assert.strictEqual(etGame.elapsedText(), '3.47s', 'elapsedText: reflects accumulated visual solving time');
 
 etGame._elapsedMs = 1000;
 const origNow0 = Date.now;
 Date.now = () => 5000;
-etGame._runStartTime = 4000; // 1000ms live segment
+etGame._runStartTime = 4000;
 assert.strictEqual(etGame.elapsedText(), '2.00s', 'elapsedText: includes live _runStartTime segment');
 Date.now = origNow0;
 etGame._runStartTime = null;
 etGame._elapsedMs = 0;
 
+assert.strictEqual(etGame.computeText(), '0.000s', 'computeText: initial value is 0.000s');
+etGame._computeDurationMs = 3.47;
+assert.strictEqual(etGame.computeText(), '0.003s', 'computeText: reflects measured compute duration in seconds');
+etGame._computeDurationMs = 3470;
+assert.strictEqual(etGame.computeText(), '3.470s', 'computeText: formats larger compute duration');
+etGame._computeDurationMs = 0;
+
 console.log('All solving-time elapsedText tests passed.');
 
 // solving time — lifecycle hooks
-// pauseSolver flushes elapsed time
 const pauseTimeGame = sudokuGame();
 pauseTimeGame.status = 'running';
 const origNow1 = Date.now;
@@ -606,26 +612,30 @@ pauseTimeGame._runStartTime = 1000;
 pauseTimeGame._elapsedMs = 0;
 pauseTimeGame.pauseSolver();
 Date.now = origNow1;
-assert.strictEqual(pauseTimeGame._elapsedMs, 1500, 'pauseSolver: flushes ms into _elapsedMs');
+assert.strictEqual(pauseTimeGame._elapsedMs, 1500, 'pauseSolver: flushes visual solving time into _elapsedMs');
 assert.strictEqual(pauseTimeGame._runStartTime, null, 'pauseSolver: clears _runStartTime');
 
-// resetPuzzle clears timing
+// resetPuzzle clears both time values
 const resetTimeGame = sudokuGame();
 resetTimeGame._elapsedMs = 9999;
 resetTimeGame._runStartTime = 12345;
+resetTimeGame._computeDurationMs = 9.99;
 resetTimeGame.resetPuzzle();
 assert.strictEqual(resetTimeGame._elapsedMs, 0, 'resetPuzzle: clears _elapsedMs');
 assert.strictEqual(resetTimeGame._runStartTime, null, 'resetPuzzle: clears _runStartTime');
+assert.strictEqual(resetTimeGame._computeDurationMs, 0, 'resetPuzzle: clears _computeDurationMs');
 
-// newPuzzle clears timing
+// newPuzzle clears both time values
 const newTimeGame = sudokuGame();
 newTimeGame._elapsedMs = 4200;
 newTimeGame._runStartTime = 777;
+newTimeGame._computeDurationMs = 4.2;
 newTimeGame.newPuzzle();
 assert.strictEqual(newTimeGame._elapsedMs, 0, 'newPuzzle: clears _elapsedMs');
 assert.strictEqual(newTimeGame._runStartTime, null, 'newPuzzle: clears _runStartTime');
+assert.strictEqual(newTimeGame._computeDurationMs, 0, 'newPuzzle: clears _computeDurationMs');
 
-// finishNow skips waiting but records selected-speed completion time
+// finishNow skips waiting but records projected visual time and actual compute time
 const finishTimeGame = sudokuGame();
 finishTimeGame.initialBoard = unsolved.map(row => [...row]);
 finishTimeGame.board = unsolved.map(row => [...row]);
@@ -636,6 +646,10 @@ finishTimeGame.steps = createBacktrackingTrace(unsolved).steps;
 finishTimeGame.stepIndex = 5;
 finishTimeGame._runStartTime = 3000;
 finishTimeGame._elapsedMs = 1000;
+finishTimeGame._measureTrace = board => {
+  const trace = createBacktrackingTrace(board);
+  return { trace, durationMs: 12.345 };
+};
 const origNow2 = Date.now;
 Date.now = () => 4000;
 finishTimeGame.finishNow();
@@ -646,8 +660,13 @@ assert.strictEqual(
   'finishNow: adds remaining selected-speed trace time'
 );
 assert.strictEqual(finishTimeGame._runStartTime, null, 'finishNow: clears _runStartTime');
+assert.strictEqual(
+  finishTimeGame._computeDurationMs,
+  12.345,
+  'finishNow: records measured trace-generation compute time'
+);
 
-// final trace step completes solving time immediately
+// final trace step completes visual solving time but keeps compute time
 const finalStepTimeGame = sudokuGame();
 finalStepTimeGame.board = tracePuzzle.map(row => [...row]);
 finalStepTimeGame.solvedBoard = [
@@ -663,6 +682,7 @@ finalStepTimeGame.solvedBoard = [
 ];
 finalStepTimeGame.steps = [{ type: 'place', row: 0, col: 8, value: 9 }];
 finalStepTimeGame.status = 'running';
+finalStepTimeGame._computeDurationMs = 5.5;
 finalStepTimeGame._runStartTime = 1000;
 finalStepTimeGame._interval = setInterval(() => {}, 1000);
 const origNow4 = Date.now;
@@ -671,30 +691,42 @@ finalStepTimeGame._applyNextStep();
 Date.now = origNow4;
 assert.strictEqual(finalStepTimeGame.status, 'solved', '_applyNextStep: final step marks solved immediately');
 assert.strictEqual(finalStepTimeGame._interval, null, '_applyNextStep: final step stops playback');
-assert.strictEqual(finalStepTimeGame._elapsedMs, 250, '_applyNextStep: final step captures solve time');
+assert.strictEqual(finalStepTimeGame._elapsedMs, 250, '_applyNextStep: final step captures visual solve time');
 assert.strictEqual(finalStepTimeGame._runStartTime, null, '_applyNextStep: final step clears _runStartTime');
+assert.strictEqual(finalStepTimeGame._computeDurationMs, 5.5, '_applyNextStep: final step keeps measured compute time');
 
-// runSolver sets _runStartTime
+// runSolver starts visual timer and measures trace-generation compute time
 const runTimeGame = sudokuGame();
 runTimeGame.initialBoard = unsolved.map(row => [...row]);
 runTimeGame.board = unsolved.map(row => [...row]);
 runTimeGame.locked = Array.from({ length: 9 }, () => Array(9).fill(false));
+runTimeGame._measureTrace = board => {
+  const trace = createBacktrackingTrace(board);
+  return { trace, durationMs: 8.75 };
+};
 const origNow3 = Date.now;
 Date.now = () => 8000;
 runTimeGame.runSolver();
 clearInterval(runTimeGame._interval);
 Date.now = origNow3;
-assert.strictEqual(runTimeGame._runStartTime, 8000, 'runSolver: sets _runStartTime to Date.now()');
+assert.strictEqual(runTimeGame._runStartTime, 8000, 'runSolver: starts visual solving timer');
+assert.strictEqual(runTimeGame._computeDurationMs, 8.75, 'runSolver: records measured compute duration');
 
-// runSolver from solved state resets _elapsedMs
+// runSolver from solved state resets visual time and replaces compute time
 const replayGame = sudokuGame();
 replayGame.initialBoard = unsolved.map(row => [...row]);
 replayGame.board = unsolved.map(row => [...row]);
 replayGame.locked = Array.from({ length: 9 }, () => Array(9).fill(false));
 replayGame.status = 'solved';
 replayGame._elapsedMs = 3500;
+replayGame._computeDurationMs = 3500;
+replayGame._measureTrace = board => {
+  const trace = createBacktrackingTrace(board);
+  return { trace, durationMs: 2.25 };
+};
 replayGame.runSolver();
 clearInterval(replayGame._interval);
-assert.strictEqual(replayGame._elapsedMs, 0, 'runSolver from solved: resets _elapsedMs to 0');
+assert.strictEqual(replayGame._elapsedMs, 0, 'runSolver from solved: resets visual time');
+assert.strictEqual(replayGame._computeDurationMs, 2.25, 'runSolver from solved: replaces measured compute time');
 
 console.log('All solving-time lifecycle tests passed.');

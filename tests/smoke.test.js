@@ -95,24 +95,42 @@ async function main() {
       await page.getByRole('button', { name: 'Run Algorithm' }).click();
       await page.waitForFunction(() => {
         const value = document.querySelector('.stat-time .stat-value')?.textContent || '0s';
-        return Number.parseFloat(value) > 0;
+        return value.endsWith('s');
       });
       await page.locator('p').filter({ hasText: /Trying \d at row|Backtracking from row/ }).waitFor();
       await page.getByRole('button', { name: 'Pause' }).click();
       await page.getByText('Solver paused.').waitFor();
-      const pausedSolvingTime = await page.locator('.stat-time .stat-value').textContent();
+      const timeValues = page.locator('.stat-time .stat-value');
+      const timeLabels = page.locator('.stat-time .stat-label');
+      const pausedSolvingTime = await timeValues.nth(0).textContent();
+      const computeTime = await timeValues.nth(1).textContent();
       await page.waitForTimeout(200);
       assert.strictEqual(
-        await page.locator('.stat-time .stat-value').textContent(),
+        await timeValues.nth(0).textContent(),
         pausedSolvingTime,
         'Solving Time freezes while paused'
       );
+      assert.strictEqual(
+        await timeValues.nth(1).textContent(),
+        computeTime,
+        'Compute Time is independent of pause duration'
+      );
       await page.getByRole('button', { name: 'Finish Now' }).click();
       await page.getByText('Solved by Backtracking DFS.').waitFor();
-      const finishedSolvingTime = await page.locator('.stat-time .stat-value').textContent();
+      const finishedSolvingTime = await timeValues.nth(0).textContent();
       assert.ok(
         Number.parseFloat(finishedSolvingTime) > Number.parseFloat(pausedSolvingTime),
         'Finish Now projects Solving Time to selected-speed completion'
+      );
+      assert.strictEqual(
+        await timeLabels.nth(0).textContent(),
+        '⏱ Solving Time',
+        'first time stat label describes visual solving time'
+      );
+      assert.strictEqual(
+        await timeLabels.nth(1).textContent(),
+        '⏱ Compute Time',
+        'second time stat label describes algorithm compute time'
       );
 
       const filledCells = await page.locator('.sudoku-cell').evaluateAll(cells =>

@@ -3,6 +3,45 @@
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.SudokuSolver = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function createSolverModule() {
+  const ALL_CANDIDATES = 0b111111111;
+  const BIT = d => 1 << (d - 1);
+  const ROW = i => Math.floor(i / 9);
+  const COL = i => i % 9;
+  const BOX = i => Math.floor(ROW(i) / 3) * 3 + Math.floor(COL(i) / 3);
+  const at = i => ({ row: ROW(i), col: COL(i) });
+  const popcount = m => { let n = 0; while (m) { m &= m - 1; n++; } return n; };
+  const lowestDigit = m => { for (let d = 1; d <= 9; d++) if (m & BIT(d)) return d; return 0; };
+  const digitsOf = m => { const out = []; for (let d = 1; d <= 9; d++) if (m & BIT(d)) out.push(d); return out; };
+
+  const UNIT_GROUPS = [];
+  const UNIT_META = [];
+  for (let r = 0; r < 9; r++) {
+    UNIT_GROUPS.push(Array.from({ length: 9 }, (_, c) => r * 9 + c));
+    UNIT_META.push({ type: 'row', index: r });
+  }
+  for (let c = 0; c < 9; c++) {
+    UNIT_GROUPS.push(Array.from({ length: 9 }, (_, r) => r * 9 + c));
+    UNIT_META.push({ type: 'column', index: c });
+  }
+  for (let br = 0; br < 3; br++) {
+    for (let bc = 0; bc < 3; bc++) {
+      const unit = [];
+      for (let dr = 0; dr < 3; dr++) for (let dc = 0; dc < 3; dc++) unit.push((br * 3 + dr) * 9 + bc * 3 + dc);
+      UNIT_GROUPS.push(unit);
+      UNIT_META.push({ type: 'box', index: br * 3 + bc });
+    }
+  }
+
+  const CELL_UNITS = Array.from({ length: 81 }, (_, i) => {
+    const r = ROW(i), c = COL(i), b = BOX(i);
+    return [UNIT_GROUPS[r], UNIT_GROUPS[9 + c], UNIT_GROUPS[18 + b]];
+  });
+  const CELL_PEERS = Array.from({ length: 81 }, (_, i) => {
+    const peers = new Set();
+    CELL_UNITS[i].forEach(unit => unit.forEach(j => { if (j !== i) peers.add(j); }));
+    return [...peers];
+  });
+
   function isValid(board, row, col, num) {
     for (let c = 0; c < 9; c++) if (board[row][c] === num) return false;
     for (let r = 0; r < 9; r++) if (board[r][col] === num) return false;
@@ -185,33 +224,7 @@
       return { solved: false, steps: [], solvedBoard: null };
     }
 
-    const ALL = 0b111111111;
-    const BIT = d => 1 << (d - 1);
-    const popcount = m => { let n = 0; while (m) { m &= m - 1; n++; } return n; };
-    const lowestDigit = m => { for (let d = 1; d <= 9; d++) if (m & BIT(d)) return d; return 0; }; // 0 = empty mask, unreachable post-solve
-    const digitsOf = m => { const out = []; for (let d = 1; d <= 9; d++) if (m & BIT(d)) out.push(d); return out; };
-
-    const ROW = i => Math.floor(i / 9);
-    const COL = i => i % 9;
-    const UNITS = [];
-    const PEERS = [];
-    for (let i = 0; i < 81; i++) {
-      const r = ROW(i), c = COL(i);
-      const rowUnit = [], colUnit = [], boxUnit = [];
-      for (let k = 0; k < 9; k++) {
-        rowUnit.push(r * 9 + k);
-        colUnit.push(k * 9 + c);
-      }
-      const boxStart = Math.floor(r / 3) * 27 + Math.floor(c / 3) * 3;
-      for (let dr = 0; dr < 3; dr++) for (let dc = 0; dc < 3; dc++) boxUnit.push(boxStart + dr * 9 + dc);
-      UNITS[i] = [rowUnit, colUnit, boxUnit];
-      const peerSet = new Set();
-      [...rowUnit, ...colUnit, ...boxUnit].forEach(j => { if (j !== i) peerSet.add(j); });
-      PEERS[i] = [...peerSet];
-    }
-
     const steps = [];
-    const at = i => ({ row: ROW(i), col: COL(i) });
     const toSnapshot = cands =>
       Array.from({ length: 9 }, (_, r) => Array.from({ length: 9 }, (_, c) => digitsOf(cands[r * 9 + c])));
 
@@ -231,7 +244,7 @@
         const eliminated = [];
         let dead = false;
 
-        for (const peer of PEERS[cell]) {
+        for (const peer of CELL_PEERS[cell]) {
           if (cands[peer] & BIT(value)) {
             cands[peer] &= ~BIT(value);
             eliminated.push({ ...at(peer), value });
@@ -248,7 +261,7 @@
         if (!dead) {
           for (const e of eliminated) {
             const peer = e.row * 9 + e.col;
-            for (const unit of UNITS[peer]) {
+            for (const unit of CELL_UNITS[peer]) {
               let places = 0, placed = false, only = -1;
               for (const u of unit) {
                 if (cands[u] === BIT(value)) { placed = true; break; }
@@ -299,7 +312,7 @@
       return null;
     }
 
-    const cands = new Array(81).fill(ALL);
+    const cands = new Array(81).fill(ALL_CANDIDATES);
     const initQueue = [];
     for (let r = 0; r < 9; r++) for (let c = 0; c < 9; c++) {
       if (board[r][c] !== 0) initQueue.push({ cell: r * 9 + c, value: board[r][c] });
@@ -329,31 +342,7 @@
       return { solved: false, steps: [], solvedBoard: null };
     }
 
-    const ALL = 0b111111111;
-    const BIT = d => 1 << (d - 1);
-    const popcount = m => { let n = 0; while (m) { m &= m - 1; n++; } return n; };
-    const digitsOf = m => { const out = []; for (let d = 1; d <= 9; d++) if (m & BIT(d)) out.push(d); return out; };
-    const lowestDigit = m => digitsOf(m)[0] || 0;
     const keyOf = m => digitsOf(m).join('');
-    const ROW = i => Math.floor(i / 9);
-    const COL = i => i % 9;
-    const BOX = i => Math.floor(ROW(i) / 3) * 3 + Math.floor(COL(i) / 3);
-    const at = i => ({ row: ROW(i), col: COL(i) });
-
-    const units = [];
-    const unitMeta = [];
-    for (let r = 0; r < 9; r++) units.push(Array.from({ length: 9 }, (_, c) => r * 9 + c));
-    for (let r = 0; r < 9; r++) unitMeta.push({ type: 'row', index: r });
-    for (let c = 0; c < 9; c++) units.push(Array.from({ length: 9 }, (_, r) => r * 9 + c));
-    for (let c = 0; c < 9; c++) unitMeta.push({ type: 'column', index: c });
-    for (let br = 0; br < 3; br++) {
-      for (let bc = 0; bc < 3; bc++) {
-        const unit = [];
-        for (let dr = 0; dr < 3; dr++) for (let dc = 0; dc < 3; dc++) unit.push((br * 3 + dr) * 9 + bc * 3 + dc);
-        units.push(unit);
-        unitMeta.push({ type: 'box', index: br * 3 + bc });
-      }
-    }
 
     const cands = new Array(81).fill(0);
     for (let r = 0; r < 9; r++) {
@@ -376,14 +365,8 @@
     const solvedCells = cands.map((_, i) => board[ROW(i)][COL(i)] !== 0);
 
     function removeFromPeers(cell, value) {
-      const r = ROW(cell), c = COL(cell);
-      const boxR = Math.floor(r / 3) * 3, boxC = Math.floor(c / 3) * 3;
-      const peers = new Set();
-      for (let k = 0; k < 9; k++) { peers.add(r * 9 + k); peers.add(k * 9 + c); }
-      for (let dr = 0; dr < 3; dr++) for (let dc = 0; dc < 3; dc++) peers.add((boxR + dr) * 9 + boxC + dc);
-      peers.delete(cell);
       const eliminated = [];
-      for (const peer of peers) {
+      for (const peer of CELL_PEERS[cell]) {
         if (popcount(cands[peer]) > 1 && (cands[peer] & BIT(value))) {
           cands[peer] &= ~BIT(value);
           eliminated.push({ ...at(peer), value });
@@ -410,12 +393,12 @@
     }
 
     function applyHiddenSingle() {
-      for (let unitIndex = 0; unitIndex < units.length; unitIndex++) {
-        const unit = units[unitIndex];
+      for (let unitIndex = 0; unitIndex < UNIT_GROUPS.length; unitIndex++) {
+        const unit = UNIT_GROUPS[unitIndex];
         for (let d = 1; d <= 9; d++) {
           const places = unit.filter(i => cands[i] & BIT(d));
           if (places.length === 1 && !solvedCells[places[0]] && popcount(cands[places[0]]) > 1) {
-            const meta = unitMeta[unitIndex];
+            const meta = UNIT_META[unitIndex];
             return place(places[0], d, 'Hidden Single', `This digit has only one possible cell in this ${meta.type}.`);
           }
         }
@@ -424,8 +407,8 @@
     }
 
     function applyHiddenPair() {
-      for (let unitIndex = 0; unitIndex < units.length; unitIndex++) {
-        const unit = units[unitIndex];
+      for (let unitIndex = 0; unitIndex < UNIT_GROUPS.length; unitIndex++) {
+        const unit = UNIT_GROUPS[unitIndex];
         const positions = new Map();
         for (let d = 1; d <= 9; d++) {
           const places = unit.filter(i => (cands[i] & BIT(d)) && popcount(cands[i]) > 1);
@@ -448,7 +431,7 @@
             }
           }
           if (eliminated.length) {
-            const meta = unitMeta[unitIndex];
+            const meta = UNIT_META[unitIndex];
             steps.push({
               type: 'human-eliminate',
               strategy: 'Hidden Pair',
@@ -468,7 +451,7 @@
 
     function applyPointingPairTriple() {
       for (let box = 0; box < 9; box++) {
-        const unit = units[18 + box];
+        const unit = UNIT_GROUPS[18 + box];
         for (let value = 1; value <= 9; value++) {
           const places = unit.filter(i => (cands[i] & BIT(value)) && popcount(cands[i]) > 1);
           if (places.length < 2) continue;
@@ -478,7 +461,7 @@
           if (!sameRow && !sameCol) continue;
 
           const line = sameRow ? { type: 'row', index: ROW(places[0]) } : { type: 'column', index: COL(places[0]) };
-          const lineCells = sameRow ? units[line.index] : units[9 + line.index];
+          const lineCells = sameRow ? UNIT_GROUPS[line.index] : UNIT_GROUPS[9 + line.index];
           const eliminated = [];
           for (const cell of lineCells) {
             if (BOX(cell) === box || popcount(cands[cell]) <= 1 || !(cands[cell] & BIT(value))) continue;
@@ -506,7 +489,7 @@
 
     function applyBoxLineReduction() {
       for (let unitIndex = 0; unitIndex < 18; unitIndex++) {
-        const unit = units[unitIndex];
+        const unit = UNIT_GROUPS[unitIndex];
         const line = unitIndex < 9 ? { type: 'row', index: unitIndex } : { type: 'column', index: unitIndex - 9 };
         for (let value = 1; value <= 9; value++) {
           const places = unit.filter(i => (cands[i] & BIT(value)) && popcount(cands[i]) > 1);
@@ -514,7 +497,7 @@
           const box = BOX(places[0]);
           if (!places.every(i => BOX(i) === box)) continue;
 
-          const boxCells = units[18 + box];
+          const boxCells = UNIT_GROUPS[18 + box];
           const eliminated = [];
           for (const cell of boxCells) {
             const inLine = line.type === 'row' ? ROW(cell) === line.index : COL(cell) === line.index;
@@ -542,7 +525,7 @@
     }
 
     function applyNakedPair() {
-      for (const unit of units) {
+      for (const unit of UNIT_GROUPS) {
         const pairs = new Map();
         for (const i of unit) {
           if (popcount(cands[i]) === 2) {

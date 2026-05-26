@@ -20,7 +20,7 @@ To keep this GitHub README open, use `Ctrl`+click on Windows/Linux, `Cmd`+click 
 - Verifies generated layouts are valid, solvable, and unique before display.
 - Keeps the current puzzle fixed until the user changes difficulty or clicks `New Puzzle`.
 - Animates a backtracking trace with placement and backtracking highlights.
-- Tracks placed values, backtracks, and selected-speed solving time.
+- Tracks placed values, backtracks, visual solving time, and algorithm compute time.
 - Supports pause, resume, reset, immediate completion, speed selection, and dark mode.
 - Works as a static Netlify site and includes PWA metadata plus a cache-first service worker.
 
@@ -65,8 +65,8 @@ The app can also be opened from an existing local static server. Avoid opening `
 | Algorithm | Selects the visualized solving algorithm. Switching resets the current trace. |
 | Run Algorithm | Builds and replays the backtracking trace for the current puzzle. |
 | Speed | Changes playback delay for the visualizer. |
-| Pause | Freezes animation and solving time. |
-| Finish Now | Skips the remaining wait while adding the projected selected-speed trace duration, fills the solved board, and marks the puzzle solved. |
+| Pause | Freezes animation playback and visual solving time. |
+| Finish Now | Skips the remaining animation while projecting visual solving time to selected-speed completion, fills the solved board when available, and keeps the measured compute time. |
 | Reset | Clears solver-added values and returns to the current generated layout. |
 | New Puzzle | Generates a fresh puzzle at the current difficulty. |
 | Theme toggle | Toggles dark mode and persists the preference in `localStorage`. |
