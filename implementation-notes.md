@@ -452,3 +452,16 @@ The trace function copies the input board before solving so it does not mutate t
 - **Decision — No pencil marks:** SA steps carry a full `board` snapshot instead of a candidate `snapshot` array. `currentSnapshot` is never set for SA steps — the pencil-mark overlay does not appear.
 - **Tradeoff — Probabilistic:** SA does not guarantee a solution. Up to 5 restarts attempted. `stuck` status used if all fail.
 - **SW cache:** bumped from `sudoku-v34` to `sudoku-v35`. Query strings updated to `?v=20260526-sa`.
+
+---
+
+### 2026-05-26 — Knuth's Algorithm X (DLX) solver
+
+- **Decision — Approach:** Added `createDlxTrace(board)` to `src/solver.js`. It translates the 9x9 Sudoku grid into a circular, toroidal doubly-linked list representation of the exact cover problem (324 columns representing constraints, 729 rows representing digit choices).
+- **Decision — Givens Pre-covering:** Starting board clues are pre-covered in the linked list structure before the search loop starts. This correctly isolates the starting constraints and reduces the initial search space.
+- **Decision — Heuristic Search:** Search uses Knuth's S-heuristic (choosing the column with the minimum active rows, equivalent to fail-first/MRV) to select the next branch. This dramatically reduces search steps.
+- **Decision — Symmetrical Uncovering:** Uncovering of columns during recursive backtracking occurs in the exact reverse chronological order of their covering, preserving correct toroidal pointer states.
+- **Decision — Snapshot Generation:** The candidate snap `snapshot[r][c]` is collected from active row choices linked in cell constraint columns. Unsolved cell candidates are extracted in $O(1)$ and rendered as standard visual pencil marks.
+- **Decision — Alpine & UI Integration:** Added dropdown options, registered `dlx` in visualizer mappings, and mapped stats: `✦ Choices Left` (active rows remaining in DLX matrix) and `↯ Constraints` (active columns remaining).
+- **Cache and Version update:** Bumped service worker cache to `sudoku-v37` and updated all version query strings in `index.html` to `?v=20260526-dlx`.
+- **Testing:** Added robust TDD unit tests to `tests/game.test.js` and automated browser smoke flows in Playwright (`tests/smoke.test.js`).

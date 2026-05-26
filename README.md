@@ -50,7 +50,7 @@ The app can also be opened from an existing local static server. Avoid opening `
 
 1. Choose `Easy`, `Medium`, or `Hard`.
 2. Review the generated starting layout.
-3. Choose the algorithm: `Backtracking DFS`, `Backtracking + MRV`, `Constraint Propagation`, `Human Logic Solver`, `Human Logic Solver v2`, or `Human Logic Solver v3`.
+3. Choose the algorithm: `Backtracking DFS`, `Backtracking + MRV`, `Constraint Propagation`, `Human Logic Solver`, `Human Logic Solver v2`, `Human Logic Solver v3`, `Simulated Annealing`, or `Knuth's Algorithm X (DLX)`.
 4. Choose playback speed: `1x`, `2x`, `5x`, or `10x`.
 5. Click `Run Algorithm` to animate the trace.
 6. Use `Pause`, `Finish Now`, `Reset`, or `New Puzzle` as needed.
@@ -93,7 +93,7 @@ Generation starts from a complete solved board, shuffles it, removes clues, and 
 
 ## Solving Algorithms
 
-The app ships with six selectable algorithms. The backtracking variants share the same validity rules and `place` / `backtrack` step vocabulary. Constraint Propagation and the Human Logic modes use candidate snapshots so the visualizer can show pencil marks shrinking as deductions happen.
+The app ships with eight selectable algorithms. The backtracking variants and Algorithm X share grid-focused placement/backtrack vocabularies. Constraint Propagation, Algorithm X (DLX), and the Human Logic modes use candidate snapshots so the visualizer can show pencil marks shrinking as constraints collapse.
 
 The UI does not mutate the DOM live, one step at a time. Each algorithm first produces a complete, deterministic trace of placements and backtracks, and the visualizer replays that trace at the selected speed. This keeps pause, reset, finish-now, and testing behavior predictable.
 
@@ -121,9 +121,17 @@ Human Logic Solver v2 keeps the original human mode intact and adds intermediate
 
 Human Logic Solver v3 extends v2 with fish elimination techniques: **X-Wing** and **Swordfish**. X-Wing applies when a candidate digit appears in exactly two cells in each of two rows, and those two cells share the same two columns — the digit can be eliminated from every other cell in those columns. Swordfish generalises the pattern to three rows and three columns. These eliminations are invisible to the single-row or single-box rules of earlier modes but follow strict logical necessity, never guessing. Like all human-logic modes, v3 stops rather than guesses when its technique set is exhausted.
 
+### Simulated Annealing
+
+Simulated Annealing is a stochastic local search meta-heuristic. Unlike depth-first search, the board starts fully filled using a box-complete heuristic that guarantees zero box conflicts from the start. The solver then randomly swaps non-clue digits inside boxes to minimize row and column conflicts. Moves that reduce conflicts are always accepted; moves that increase conflicts are accepted with a probability that scales with a decreasing temperature parameter ($e^{-\Delta E / T}$). This allows the solver to escape local minima. In the visualizer, every cell is filled from the first frame, and you can see digits swapping and conflicts decreasing live.
+
+### Knuth's Algorithm X (DLX)
+
+Knuth's Algorithm X solved via Dancing Links (DLX) is the ultimate exact cover formulation of Sudoku. It translates the 9x9 board into a 729-row by 324-column binary matrix where columns represent cell, row, column, and box constraints. It uses a sparse matrix represented by a toroidal quad-linked list. The search selects columns with the minimum active rows (Knuth's S-heuristic) and recursively covers satisfied constraints. In the visualizer, active cell candidates are extracted in $O(1)$ from the column lists, showing pencil marks dynamically shrinking and expanding as constraints collapse.
+
 ## Algorithm Comparison
 
-The app currently implements Backtracking DFS, Backtracking + MRV, Constraint Propagation, and Human Logic v1/v2/v3. The table below covers all implemented algorithms plus Simulated Annealing (the next candidate) and two non-viable options kept for reference. Because this app is a *visualizer*, an algorithm's value depends not only on speed but on whether its steps produce a watchable cell-by-cell trace.
+The app currently implements Backtracking DFS, Backtracking + MRV, Constraint Propagation, Human Logic v1/v2/v3, Simulated Annealing, and Knuth's Algorithm X (DLX). The table below covers all implemented algorithms plus one non-viable option kept for reference. Because this app is a *visualizer*, an algorithm's value depends not only on speed but on whether its steps produce a watchable cell-by-cell trace.
 
 Variables used: **m** = empty cells (36 Easy / 46 Medium / 52 Hard), **n** = 81 total cells, **d** = 9 digits, **b** = effective branching factor, **P** = number of technique passes, **r** = 9 rows/cols, **R** = expected restarts, **N** = cooling iterations.
 
@@ -137,18 +145,13 @@ Variables used: **m** = empty cells (36 Easy / 46 Medium / 52 Hard), **n** = 81 
 | **Human Logic v1** | O(P·n·d) | P passes × 81 cells × 9 digits; naked/hidden single scan = O(n·d) per pass | Solves most / often stalls | No — stops when stuck | Excellent — named strategy per step; tutor-style |
 | **Human Logic v2** | O(P·n·d²) | Adds pair detection O(n²) per unit; box-line reduction O(n·d) | Solves most / sometimes stalls | No | Excellent |
 | **Human Logic v3** | O(P·(n·d + d·r³)) | Adds X-Wing O(d·r²) = 324 checks/pass; Swordfish O(d·r³) = 756 checks/pass | Solves / stalls on hardest | No | Excellent |
-
-### Candidate next algorithm
-
-| Algorithm | Worst-case complexity | How the cost is derived | Typical iterations Easy / Hard | Guarantees solution? | Visualization quality |
-|---|---|---|---|---|---|
-| **Simulated Annealing** | O(R × N) | Each iteration O(1): pick box, swap 2 non-clue cells, recount 4 rows+cols. N = log(T_min/T_initial) / log(α). Example: T_initial=2, T_min=0.001, α=0.99995 → N ≈ 152,000. R ≈ 1–3 restarts. **Cost is independent of m** — difficulty barely affects iteration count. | ~50K–100K / ~100K–500K | Probabilistic (random restarts) | Excellent — board fully filled from frame 1; every frame shows a swap, conflict count, and temperature; completely distinct from all other modes |
+| **Simulated Annealing** | O(R × N) | Each iteration O(1): pick box, swap 2 non-clue cells. N = log(T_min/T_initial)/log(α). R restarts. | ~50K–100K / ~100K–500K | Probabilistic (random restarts) | Excellent — board fully filled, swaps digits and counts conflicts live |
+| **Knuth's Algorithm X (DLX)** | O(9^m) | 4 constraint columns per choice row; S-heuristic minimizes branching factor | ~20 / ~50–1,000 | Yes | Excellent — toroidal matrix reduction maps directly to shrinking pencil marks |
 
 ### Non-viable options (reference only)
 
 | Algorithm | Reason not implemented |
 |---|---|
-| **Dancing Links / DLX** | Internal steps are linked-list cover/uncover operations — no natural mapping to grid cells; the board would appear frozen between solutions |
 | **SAT solver** | Encodes 729 boolean variables; clause propagation steps have no grid-cell interpretation; solver is a black box from the visualizer's perspective |
 
 ### Why each algorithm was added
@@ -161,7 +164,9 @@ Variables used: **m** = empty cells (36 Easy / 46 Medium / 52 Hard), **n** = 81 
 
 **Human Logic v1/v2/v3** reuse the candidate snapshot infrastructure and add named strategy labels per step, turning elimination events into teachable moments. Each version adds a harder class of technique while still refusing to guess.
 
-**Simulated Annealing** (planned) would introduce a third paradigm — stochastic optimization — where the board starts fully filled and values swap rather than fill. It requires new step types (`fill`, `swap`, `accept`, `reject`) but reuses the existing trace-replay infrastructure. The key visual distinction: every cell has a value from frame 1, conflicts are the progress signal, and the solver can temporarily get worse before getting better.
+**Simulated Annealing** represents a stochastic, local search optimization paradigm where the board is fully filled from the first frame and values are swapped to resolve conflicts. Temporary steps are accepted stochastically based on decreasing temperature.
+
+**Knuth's Algorithm X (DLX)** showcases matrix-level constraint reduction on doubly-linked toroidal grids, mapping exact cover transitions onto active candidate sets.
 
 ## Tech Stack
 

@@ -6,7 +6,7 @@
   root.PLAYBACK_SPEEDS = api.PLAYBACK_SPEEDS;
   root.sudokuGame = api.sudokuGame;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function createVisualizerModule(solver, generator) {
-  const { createBacktrackingTrace, createMrvTrace, createConstraintPropagationTrace, createHumanLogicTrace, createHumanLogicV2Trace, createHumanLogicV3Trace, createSimulatedAnnealingTrace } = solver;
+  const { createBacktrackingTrace, createMrvTrace, createConstraintPropagationTrace, createHumanLogicTrace, createHumanLogicV2Trace, createHumanLogicV3Trace, createSimulatedAnnealingTrace, createDlxTrace } = solver;
   const { generateTestPuzzle } = generator;
 
   const TRACE_BUILDERS = {
@@ -17,6 +17,7 @@
     'human-v2': createHumanLogicV2Trace,
     'human-v3': createHumanLogicV3Trace,
     sa: createSimulatedAnnealingTrace,
+    dlx: createDlxTrace,
   };
 
   const ALGORITHM_LABELS = {
@@ -27,6 +28,7 @@
     'human-v2': 'Human Logic Solver v2',
     'human-v3': 'Human Logic Solver v3',
     sa: 'Simulated Annealing',
+    dlx: "Knuth's Algorithm X (DLX)",
   };
 
   // Base step delay: smooth animation at 1x, scales by integer factors
@@ -67,6 +69,8 @@
       swapCount: 0,
       conflictCount: 0,
       saAttempt: 0,
+      dlxActiveRows: 0,
+      dlxActiveCols: 0,
 
       init() {
         this.darkMode = localStorage.getItem('sudoku-dark') === 'true';
@@ -102,6 +106,8 @@
             this.swapCount = 0;
             this.conflictCount = 0;
             this.saAttempt = 0;
+            this.dlxActiveRows = 0;
+            this.dlxActiveCols = 0;
             this.status = 'ready';
           } catch (_) {
             this.status = 'error';
@@ -148,6 +154,8 @@
           this.swapCount = 0;
           this.conflictCount = 0;
           this.saAttempt = 0;
+          this.dlxActiveRows = 0;
+          this.dlxActiveCols = 0;
           this.currentSnapshot = null;
           this.traceSolved = trace.solved;
           this._computeDurationMs = durationMs;
@@ -205,6 +213,14 @@
           } else if (step.type === 'sa-fill' || step.type === 'sa-restart') {
             this.conflictCount = step.conflicts;
             this.saAttempt = step.attempt;
+          } else if (step.type === 'dlx-place') {
+            this.placedCount++;
+            this.dlxActiveRows = step.activeRows;
+            this.dlxActiveCols = step.activeCols;
+          } else if (step.type === 'dlx-backtrack') {
+            this.backtrackedCount++;
+            this.dlxActiveRows = step.activeRows;
+            this.dlxActiveCols = step.activeCols;
           }
         }
 
@@ -251,6 +267,8 @@
         this.swapCount = 0;
         this.conflictCount = 0;
         this.saAttempt = 0;
+        this.dlxActiveRows = 0;
+        this.dlxActiveCols = 0;
         this.status = 'ready';
       },
 
@@ -319,6 +337,12 @@
         if (this.status === 'running' && this.currentStep?.type === 'sa-restart') {
           return `Restarting… attempt ${this.currentStep.attempt}.`;
         }
+        if (this.status === 'running' && this.currentStep?.type === 'dlx-place') {
+          return `Algorithm X: placing ${this.currentStep.value} at row ${this.currentStep.row + 1}, column ${this.currentStep.col + 1}.`;
+        }
+        if (this.status === 'running' && this.currentStep?.type === 'dlx-backtrack') {
+          return `Algorithm X: backtracking from row ${this.currentStep.row + 1}, column ${this.currentStep.col + 1}.`;
+        }
         if (this.status === 'paused') return 'Solver paused.';
         if (this.status === 'stuck') return `${ALGORITHM_LABELS[this.selectedAlgorithm] || 'The solver'} is stuck and needs more strategies.`;
         if (this.status === 'solved') return `Solved by ${ALGORITHM_LABELS[this.selectedAlgorithm] || 'the solver'}.`;
@@ -334,6 +358,7 @@
           'human-v2': '⬡ Human Logic v2',
           'human-v3': '⬡ Human Logic v3',
           sa: '⬡ Simulated Annealing',
+          dlx: '⬡ Algorithm X (DLX)',
         };
         return badges[this.selectedAlgorithm] || this.selectedAlgorithm;
       },
@@ -356,6 +381,7 @@
           'human-v2': 'Human Logic v2 Visualizer',
           'human-v3': 'Human Logic v3 Visualizer',
           sa: 'Simulated Annealing Visualizer',
+          dlx: "Knuth's Algorithm X Visualizer",
         };
         return labels[this.selectedAlgorithm] || 'Algorithm Visualizer';
       },
@@ -365,7 +391,7 @@
       },
 
       isBacktracked(row, col) {
-        return this.isCurrentCell(row, col) && this.currentStep?.type === 'backtrack';
+        return this.isCurrentCell(row, col) && (this.currentStep?.type === 'backtrack' || this.currentStep?.type === 'dlx-backtrack');
       },
 
       cellCandidates(row, col) {
@@ -376,7 +402,7 @@
       },
 
       isPlacingCell(row, col) {
-        return this.isCurrentCell(row, col) && (this.currentStep?.type === 'place' || this.currentStep?.type === 'propagate' || this.currentStep?.type === 'human-place');
+        return this.isCurrentCell(row, col) && (this.currentStep?.type === 'place' || this.currentStep?.type === 'propagate' || this.currentStep?.type === 'human-place' || this.currentStep?.type === 'dlx-place');
       },
 
       isGuessCell(row, col) {
@@ -421,6 +447,7 @@
         if (this.selectedAlgorithm === 'constraint') return '✦ Eliminations';
         if (this.selectedAlgorithm === 'human' || this.selectedAlgorithm === 'human-v2' || this.selectedAlgorithm === 'human-v3') return '✦ Deductions';
         if (this.selectedAlgorithm === 'sa') return '✦ Swaps';
+        if (this.selectedAlgorithm === 'dlx') return '✦ Choices Left';
         return '✦ Placed';
       },
 
@@ -428,6 +455,7 @@
         if (this.selectedAlgorithm === 'constraint') return '↯ Guesses';
         if (this.selectedAlgorithm === 'human' || this.selectedAlgorithm === 'human-v2' || this.selectedAlgorithm === 'human-v3') return '↯ Eliminations';
         if (this.selectedAlgorithm === 'sa') return '↯ Conflicts';
+        if (this.selectedAlgorithm === 'dlx') return '↯ Constraints';
         return '↩ Backtracks';
       },
 
@@ -435,6 +463,7 @@
         if (this.selectedAlgorithm === 'constraint') return this.eliminationCount;
         if (this.selectedAlgorithm === 'human' || this.selectedAlgorithm === 'human-v2' || this.selectedAlgorithm === 'human-v3') return this.placedCount;
         if (this.selectedAlgorithm === 'sa') return this.swapCount;
+        if (this.selectedAlgorithm === 'dlx') return this.dlxActiveRows;
         return this.placedCount;
       },
 
@@ -442,6 +471,7 @@
         if (this.selectedAlgorithm === 'constraint') return this.guessCount;
         if (this.selectedAlgorithm === 'human' || this.selectedAlgorithm === 'human-v2' || this.selectedAlgorithm === 'human-v3') return this.eliminationCount;
         if (this.selectedAlgorithm === 'sa') return this.conflictCount;
+        if (this.selectedAlgorithm === 'dlx') return this.dlxActiveCols;
         return this.backtrackedCount;
       },
 
@@ -458,11 +488,17 @@
         }
 
         const step = this.steps[this.stepIndex];
-        if (step.type === 'place' || step.type === 'backtrack') {
-          if (step.type === 'place') this.placedCount++;
+        if (step.type === 'place' || step.type === 'backtrack' || step.type === 'dlx-place' || step.type === 'dlx-backtrack') {
+          const isPlace = step.type === 'place' || step.type === 'dlx-place';
+          if (isPlace) this.placedCount++;
           else this.backtrackedCount++;
+          if (step.type === 'dlx-place' || step.type === 'dlx-backtrack') {
+            this.dlxActiveRows = step.activeRows;
+            this.dlxActiveCols = step.activeCols;
+            this.currentSnapshot = step.snapshot;
+          }
           const nextRow = [...this.board[step.row]];
-          nextRow[step.col] = step.type === 'place' ? step.value : 0;
+          nextRow[step.col] = isPlace ? step.value : 0;
           this.board = this.board.map((row, index) => index === step.row ? nextRow : row);
         } else {
           if (step.type === 'propagate') {

@@ -185,6 +185,21 @@ async function main() {
       await page.getByRole('button', { name: 'Pause' }).click();
       await page.getByText('Solver paused.').waitFor();
 
+      // DLX flow: select, run, verify candidates, pause, finish now
+      await page.selectOption('select.algo-select', 'dlx');
+      await page.getByText('Select an algorithm and run the solver.').waitFor();
+      await page.getByRole('button', { name: 'Run Algorithm' }).click();
+      await page.locator('p').filter({ hasText: /Algorithm X: placing/ }).waitFor();
+      await page.waitForFunction(() =>
+        [...document.querySelectorAll('.cell-candidate')].some(el => el.textContent.trim() !== '')
+      );
+      await page.getByRole('button', { name: 'Finish Now' }).click();
+      await page.getByText("Solved by Knuth's Algorithm X (DLX).").waitFor();
+      const dlxFilledCells = await page.locator('.sudoku-cell').evaluateAll(cells =>
+        cells.filter(cell => cell.textContent.trim()).length
+      );
+      assert.strictEqual(dlxFilledCells, 81, 'DLX fills every cell after Finish Now');
+
       assert.deepStrictEqual(errors, [], 'browser console has no errors');
     } finally {
       await browser.close();

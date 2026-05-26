@@ -999,6 +999,242 @@
     };
   }
 
+  function createDlxTrace(board) {
+    if (!hasValidGivens(board)) {
+      return { solved: false, steps: [], solvedBoard: null };
+    }
+
+    const steps = [];
+    const working = board.map(row => [...row]);
+
+    // DLX classes
+    class DlxNode {
+      constructor(columnNode = null, rowInfo = null) {
+        this.up = this;
+        this.down = this;
+        this.left = this;
+        this.right = this;
+        this.column = columnNode || this;
+        this.rowInfo = rowInfo;
+      }
+    }
+
+    class DlxColumn extends DlxNode {
+      constructor(name) {
+        super(null, null);
+        this.name = name;
+        this.size = 0;
+      }
+    }
+
+    // 1. Initialize headers
+    const head = new DlxColumn('head');
+    const columns = [];
+    let prevCol = head;
+    for (let c = 0; c < 324; c++) {
+      const col = new DlxColumn(c);
+      columns.push(col);
+      col.left = prevCol;
+      prevCol.right = col;
+      prevCol = col;
+    }
+    head.left = prevCol;
+    prevCol.right = head;
+
+    // 2. Build exact cover rows for all 729 choices
+    const choiceNodes = {}; // key: "r-c-d" -> cell node
+
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        for (let d = 1; d <= 9; d++) {
+          const b = Math.floor(r / 3) * 3 + Math.floor(c / 3);
+          const rowInfo = { row: r, col: c, value: d, id: `${r}-${c}-${d}` };
+
+          const colIndices = [
+            r * 9 + c,                     // Cell constraint (0 - 80)
+            81 + r * 9 + (d - 1),          // Row-Digit constraint (81 - 161)
+            162 + c * 9 + (d - 1),         // Col-Digit constraint (162 - 242)
+            243 + b * 9 + (d - 1)          // Box-Digit constraint (243 - 323)
+          ];
+
+          const nodes = [];
+          for (const colIdx of colIndices) {
+            const col = columns[colIdx];
+            const node = new DlxNode(col, rowInfo);
+            const lastNode = col.up;
+            node.down = col;
+            col.up = node;
+            node.up = lastNode;
+            lastNode.down = node;
+            col.size++;
+            nodes.push(node);
+          }
+
+          for (let i = 0; i < 4; i++) {
+            nodes[i].right = nodes[(i + 1) % 4];
+            nodes[(i + 1) % 4].left = nodes[i];
+          }
+
+          choiceNodes[`${r}-${c}-${d}`] = nodes[0];
+        }
+      }
+    }
+
+    // Cover and uncover functions
+    function cover(colNode) {
+      colNode.right.left = colNode.left;
+      colNode.left.right = colNode.right;
+      for (let row = colNode.down; row !== colNode; row = row.down) {
+        for (let node = row.right; node !== row; node = node.right) {
+          node.down.up = node.up;
+          node.up.down = node.down;
+          node.column.size--;
+        }
+      }
+    }
+
+    function uncover(colNode) {
+      for (let row = colNode.up; row !== colNode; row = row.up) {
+        for (let node = row.left; node !== row; node = node.left) {
+          node.column.size++;
+          node.up.down = node;
+          node.down.up = node;
+        }
+      }
+      colNode.left.right = colNode;
+      colNode.right.left = colNode;
+    }
+
+    // Capture snapshot for visualizer candidate sets
+    function toSnapshot() {
+      const snap = Array.from({ length: 9 }, () => Array.from({ length: 9 }, () => []));
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (working[r][c] !== 0) {
+            snap[r][c] = [working[r][c]];
+          } else {
+            const col = columns[r * 9 + c];
+            const isActive = col.left.right === col;
+            if (isActive) {
+              const candidates = [];
+              for (let node = col.down; node !== col; node = node.down) {
+                candidates.push(node.rowInfo.value);
+              }
+              candidates.sort((x, y) => x - y);
+              snap[r][c] = candidates;
+            } else {
+              snap[r][c] = [];
+            }
+          }
+        }
+      }
+      return snap;
+    }
+
+    function countActiveCols() {
+      let count = 0;
+      for (let c = head.right; c !== head; c = c.right) {
+        count++;
+      }
+      return count;
+    }
+
+    function countActiveRows() {
+      const seen = new Set();
+      for (let c = head.right; c !== head; c = c.right) {
+        for (let r = c.down; r !== c; r = r.down) {
+          seen.add(r.rowInfo.id);
+        }
+      }
+      return seen.size;
+    }
+
+    // 3. Pre-cover starting givens on the board
+    for (let r = 0; r < 9; r++) {
+      for (let c = 0; c < 9; c++) {
+        const val = working[r][c];
+        if (val !== 0) {
+          const choiceNode = choiceNodes[`${r}-${c}-${val}`];
+          if (choiceNode) {
+            cover(choiceNode.column);
+            for (let n = choiceNode.right; n !== choiceNode; n = n.right) {
+              cover(n.column);
+            }
+          }
+        }
+      }
+    }
+
+    // Recursive search
+    function search() {
+      if (head.right === head) {
+        return true;
+      }
+
+      let bestCol = null;
+      let minSize = Infinity;
+      for (let c = head.right; c !== head; c = c.right) {
+        if (c.size < minSize) {
+          minSize = c.size;
+          bestCol = c;
+        }
+      }
+
+      if (minSize === 0) {
+        return false;
+      }
+
+      for (let rowNode = bestCol.down; rowNode !== bestCol; rowNode = rowNode.down) {
+        const { row, col, value } = rowNode.rowInfo;
+
+        working[row][col] = value;
+
+        cover(bestCol);
+        for (let n = rowNode.right; n !== rowNode; n = n.right) {
+          cover(n.column);
+        }
+
+        steps.push({
+          type: 'dlx-place',
+          row,
+          col,
+          value,
+          activeRows: countActiveRows(),
+          activeCols: countActiveCols(),
+          snapshot: toSnapshot(),
+        });
+
+        if (search()) return true;
+
+        for (let n = rowNode.left; n !== rowNode; n = n.left) {
+          uncover(n.column);
+        }
+        uncover(bestCol);
+
+        working[row][col] = 0;
+
+        steps.push({
+          type: 'dlx-backtrack',
+          row,
+          col,
+          value: 0,
+          activeRows: countActiveRows(),
+          activeCols: countActiveCols(),
+          snapshot: toSnapshot(),
+        });
+      }
+
+      return false;
+    }
+
+    const solved = search();
+    return {
+      solved,
+      steps,
+      solvedBoard: solved ? working.map(r => [...r]) : null,
+    };
+  }
+
   return {
     isValid,
     solvePuzzle,
@@ -1011,6 +1247,7 @@
     createHumanLogicV2Trace,
     createHumanLogicV3Trace,
     createSimulatedAnnealingTrace,
+    createDlxTrace,
     countSolutions,
   };
 });

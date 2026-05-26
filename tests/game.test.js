@@ -12,6 +12,7 @@ const {
   createHumanLogicV2Trace,
   createHumanLogicV3Trace,
   createSimulatedAnnealingTrace,
+  createDlxTrace,
   generateTestPuzzle,
   PLAYBACK_SPEEDS,
   sudokuGame,
@@ -1049,3 +1050,80 @@ const builtTrace = saGame._buildTrace(saBoard);
 assert.ok(Array.isArray(builtTrace.steps), 'SA: _buildTrace returns steps array');
 
 console.log('SA visualizer state tests passed.');
+
+// ── DLX solver trace builder tests ───────────────────────────────────────
+
+const dlxTrace = createDlxTrace(unsolved);
+assert.strictEqual(dlxTrace.solved, true, 'DLX solves the classic puzzle');
+assert.deepStrictEqual(dlxTrace.solvedBoard[0], [5,3,4,6,7,8,9,1,2], 'DLX recovers unique solution');
+assert.strictEqual(unsolved[0][2], 0, 'DLX does not mutate the input board');
+
+assert.deepStrictEqual(
+  createDlxTrace(conflictedCompleteBoard),
+  { solved: false, steps: [], solvedBoard: null },
+  'DLX trace rejects conflicted layouts'
+);
+
+const dlxForced = createDlxTrace(tracePuzzle);
+assert.strictEqual(dlxForced.solved, true, 'DLX solves forced puzzle');
+assert.deepStrictEqual(
+  dlxForced.steps.map(({ type, row, col, value }) => ({ type, row, col, value })),
+  [{ type: 'dlx-place', row: 0, col: 8, value: 9 }],
+  'DLX forced records a single placement step'
+);
+
+// Verify activeRow and activeCol counts and snapshot shape on a step
+const aDlxStep = dlxForced.steps[0];
+assert.ok(aDlxStep.activeRows >= 0, 'DLX step activeRows is non-negative');
+assert.ok(aDlxStep.activeCols >= 0, 'DLX step activeCols is non-negative');
+assert.strictEqual(aDlxStep.snapshot.length, 9, 'DLX snapshot has 9 rows');
+assert.strictEqual(aDlxStep.snapshot[0].length, 9, 'DLX snapshot has 9 cols');
+assert.ok(Array.isArray(aDlxStep.snapshot[0][8]), 'DLX snapshot cell is candidates array');
+
+console.log('DLX trace builder tests passed.');
+
+// ── DLX visualizer state tests ───────────────────────────────────────────
+
+const dlxGame = sudokuGame();
+dlxGame.board = unsolved.map(r => [...r]);
+dlxGame.initialBoard = unsolved.map(r => [...r]);
+dlxGame.locked = unsolved.map(r => r.map(v => v !== 0));
+dlxGame.selectedAlgorithm = 'dlx';
+
+assert.strictEqual(dlxGame.statLabelPrimary(), '✦ Choices Left', 'DLX: primary stat label');
+assert.strictEqual(dlxGame.statLabelSecondary(), '↯ Constraints', 'DLX: secondary stat label');
+assert.strictEqual(dlxGame.statValuePrimary(), 0, 'DLX: primary value starts at 0');
+assert.strictEqual(dlxGame.statValueSecondary(), 0, 'DLX: secondary value starts at 0');
+
+const fakeDlxStep = {
+  type: 'dlx-place',
+  row: 0,
+  col: 2,
+  value: 4,
+  activeRows: 350,
+  activeCols: 180,
+  snapshot: Array.from({ length: 9 }, () => Array.from({ length: 9 }, () => [1])),
+};
+
+dlxGame.steps = [fakeDlxStep, { type: 'dlx-place', row: 0, col: 3, value: 5, activeRows: 340, activeCols: 175, snapshot: [] }];
+dlxGame.stepIndex = 0;
+dlxGame.status = 'running';
+dlxGame._applyNextStep();
+
+assert.strictEqual(dlxGame.placedCount, 1, 'DLX: placedCount incremented by dlx-place');
+assert.strictEqual(dlxGame.dlxActiveRows, 350, 'DLX: activeRows updated by apply');
+assert.strictEqual(dlxGame.dlxActiveCols, 180, 'DLX: activeCols updated by apply');
+assert.deepStrictEqual(dlxGame.currentSnapshot, fakeDlxStep.snapshot, 'DLX: currentSnapshot updated by apply');
+
+// resetPuzzle zeroes DLX fields
+dlxGame.resetPuzzle();
+assert.strictEqual(dlxGame.dlxActiveRows, 0, 'DLX: activeRows zeroed on reset');
+assert.strictEqual(dlxGame.dlxActiveCols, 0, 'DLX: activeCols zeroed on reset');
+
+// _buildTrace maps selectedAlgorithm=dlx to createDlxTrace
+dlxGame.selectedAlgorithm = 'dlx';
+const builtDlx = dlxGame._buildTrace(unsolved);
+assert.strictEqual(builtDlx.solved, true, 'DLX: buildTrace solver completes successfully');
+assert.ok(builtDlx.steps.length > 0, 'DLX: buildTrace returns steps');
+
+console.log('DLX visualizer state tests passed.');
