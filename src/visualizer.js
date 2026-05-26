@@ -145,6 +145,9 @@
           this.backtrackedCount = 0;
           this.eliminationCount = 0;
           this.guessCount = 0;
+          this.swapCount = 0;
+          this.conflictCount = 0;
+          this.saAttempt = 0;
           this.currentSnapshot = null;
           this.traceSolved = trace.solved;
           this._computeDurationMs = durationMs;
