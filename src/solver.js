@@ -528,6 +528,98 @@
       return false;
     }
 
+    function applyXWing() {
+      // Row direction: base rows, cover columns
+      for (let d = 1; d <= 9; d++) {
+        for (let r1 = 0; r1 < 8; r1++) {
+          const cols1 = [];
+          for (let c = 0; c < 9; c++) {
+            const i = r1 * 9 + c;
+            if ((cands[i] & BIT(d)) && popcount(cands[i]) > 1) cols1.push(c);
+          }
+          if (cols1.length !== 2) continue;
+          for (let r2 = r1 + 1; r2 < 9; r2++) {
+            const cols2 = [];
+            for (let c = 0; c < 9; c++) {
+              const i = r2 * 9 + c;
+              if ((cands[i] & BIT(d)) && popcount(cands[i]) > 1) cols2.push(c);
+            }
+            if (cols2.length !== 2 || cols2[0] !== cols1[0] || cols2[1] !== cols1[1]) continue;
+            const [c1, c2] = cols1;
+            const eliminations = [];
+            for (let r = 0; r < 9; r++) {
+              if (r === r1 || r === r2) continue;
+              for (const c of [c1, c2]) {
+                const i = r * 9 + c;
+                if ((cands[i] & BIT(d)) && popcount(cands[i]) > 1) {
+                  cands[i] &= ~BIT(d);
+                  eliminations.push({ row: r, col: c, value: d });
+                }
+              }
+            }
+            if (eliminations.length) {
+              steps.push({
+                type: 'human-eliminate',
+                strategy: 'x-wing',
+                digit: d,
+                baseSet: [[r1, c1], [r1, c2], [r2, c1], [r2, c2]],
+                coverLines: { axis: 'col', indices: [c1, c2] },
+                eliminations,
+                eliminated: eliminations,
+                snapshot: toSnapshot(),
+              });
+              return true;
+            }
+          }
+        }
+      }
+      // Column direction: base columns, cover rows
+      for (let d = 1; d <= 9; d++) {
+        for (let c1 = 0; c1 < 8; c1++) {
+          const rows1 = [];
+          for (let r = 0; r < 9; r++) {
+            const i = r * 9 + c1;
+            if ((cands[i] & BIT(d)) && popcount(cands[i]) > 1) rows1.push(r);
+          }
+          if (rows1.length !== 2) continue;
+          for (let c2 = c1 + 1; c2 < 9; c2++) {
+            const rows2 = [];
+            for (let r = 0; r < 9; r++) {
+              const i = r * 9 + c2;
+              if ((cands[i] & BIT(d)) && popcount(cands[i]) > 1) rows2.push(r);
+            }
+            if (rows2.length !== 2 || rows2[0] !== rows1[0] || rows2[1] !== rows1[1]) continue;
+            const [r1, r2] = rows1;
+            const eliminations = [];
+            for (let c = 0; c < 9; c++) {
+              if (c === c1 || c === c2) continue;
+              for (const r of [r1, r2]) {
+                const i = r * 9 + c;
+                if ((cands[i] & BIT(d)) && popcount(cands[i]) > 1) {
+                  cands[i] &= ~BIT(d);
+                  eliminations.push({ row: r, col: c, value: d });
+                }
+              }
+            }
+            if (eliminations.length) {
+              steps.push({
+                type: 'human-eliminate',
+                strategy: 'x-wing',
+                digit: d,
+                baseSet: [[r1, c1], [r1, c2], [r2, c1], [r2, c2]],
+                coverLines: { axis: 'row', indices: [r1, r2] },
+                eliminations,
+                eliminated: eliminations,
+                snapshot: toSnapshot(),
+              });
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    }
+
     function applyNakedPair() {
       for (const unit of UNIT_GROUPS) {
         const pairs = new Map();
@@ -572,7 +664,8 @@
       progress = applyNakedSingle() ||
         applyHiddenSingle() ||
         applyNakedPair() ||
-        (options.v2 && (applyHiddenPair() || applyPointingPairTriple() || applyBoxLineReduction()));
+        (options.v2 && (applyHiddenPair() || applyPointingPairTriple() || applyBoxLineReduction())) ||
+        (options.v3 && applyXWing());
       if (cands.some(mask => mask === 0)) return { solved: false, steps, solvedBoard: null };
     }
 

@@ -10,6 +10,7 @@ const {
   createConstraintPropagationTrace,
   createHumanLogicTrace,
   createHumanLogicV2Trace,
+  createHumanLogicV3Trace,
   generateTestPuzzle,
   PLAYBACK_SPEEDS,
   sudokuGame,
@@ -346,6 +347,42 @@ assert.ok(
 );
 
 console.log('All human logic v2 trace tests passed.');
+
+// human logic v3 trace tests
+
+// 1. Rejects conflicted layouts
+assert.deepStrictEqual(
+  createHumanLogicV3Trace(conflictedCompleteBoard),
+  { solved: false, steps: [], solvedBoard: null },
+  'human logic v3 trace rejects conflicted layouts before playback'
+);
+
+// 2. v3 produces identical steps to v2 on a puzzle v2 can already solve
+const v3boxLineTrace = createHumanLogicV3Trace(boxLinePuzzle);
+const v2boxLineTrace = createHumanLogicV2Trace(boxLinePuzzle);
+assert.deepStrictEqual(
+  v3boxLineTrace.steps.map(s => s.type + ':' + (s.strategy || '')),
+  v2boxLineTrace.steps.map(s => s.type + ':' + (s.strategy || '')),
+  'v3 produces identical steps to v2 on a puzzle v2 can already solve'
+);
+
+// 3. Shape assertions on any x-wing steps found
+const v3trace = createHumanLogicV3Trace(unsolved);
+const xwingSteps = v3trace.steps.filter(s =>
+  s.type === 'human-eliminate' && s.strategy === 'x-wing'
+);
+for (const xs of xwingSteps) {
+  assert.ok(Array.isArray(xs.baseSet), 'x-wing step.baseSet is array');
+  assert.strictEqual(xs.baseSet.length, 4, 'x-wing baseSet has exactly 4 cells');
+  assert.ok(xs.coverLines && Array.isArray(xs.coverLines.indices), 'x-wing step.coverLines.indices is array');
+  assert.strictEqual(xs.coverLines.indices.length, 2, 'x-wing coverLines has exactly 2 indices');
+  assert.ok(['row','col'].includes(xs.coverLines.axis), 'x-wing coverLines.axis is row or col');
+  assert.ok(Array.isArray(xs.eliminations) && xs.eliminations.length > 0, 'x-wing has eliminations');
+  assert.strictEqual(xs.eliminated, xs.eliminations, 'x-wing eliminated is same reference as eliminations');
+  assert.ok(typeof xs.digit === 'number', 'x-wing step has digit field');
+  assert.ok(Array.isArray(xs.snapshot) && xs.snapshot.length === 9, 'x-wing step has 9-row snapshot');
+}
+console.log(`X-Wing shape assertions passed (${xwingSteps.length} x-wing steps found on unsolved board).`);
 
 // visualizer test puzzle tests
 const expectedEmptyRanges = {
@@ -738,5 +775,4 @@ assert.strictEqual(replayGame._computeDurationMs, 2.25, 'runSolver from solved: 
 console.log('All solving-time lifecycle tests passed.');
 
 // human logic v3 — import guard
-const { createHumanLogicV3Trace } = require('../game.js');
 assert.strictEqual(typeof createHumanLogicV3Trace, 'function', 'createHumanLogicV3Trace is exported');
