@@ -420,3 +420,13 @@ The trace function copies the input board before solving so it does not mutate t
 **Cache update:** Bumped service worker cache from `sudoku-v32` to `sudoku-v33`. Updated all query string versions in `index.html` from `?v=20260525-uidesktop` to `?v=20260525-finishexc`.
 
 **Testing:** Updated visualizer unit tests in `tests/game.test.js` to assert that `placedCount` and `backtrackedCount` match the expected complete trace count after `finishNow()` is executed. Both `npm test` and `npm run test:smoke` pass successfully.
+
+### 2026-05-26 — Human Logic Solver v3 (X-Wing + Swordfish)
+
+- Added `createHumanLogicV3Trace()` in `src/solver.js` via `createHumanLogicTraceWithStrategies(board, { v2: true, v3: true })`. The `options.v3` flag gates `applyXWing()` and `applySwordfish()` inside the existing shared function body — no code duplication of the v1/v2 technique stack.
+- **X-Wing:** row direction (pairs of rows where digit d has exactly 2 candidate columns, both rows sharing the same 2 cols) and column direction. Emits `human-eliminate` steps with `strategy: 'x-wing'`, `baseSet` (4 cells), `coverLines: { axis: 'col'|'row', indices: [2] }`.
+- **Swordfish:** row direction (triples of rows where each has 2–3 candidate columns, union exactly 3) and column direction. Emits `human-eliminate` steps with `strategy: 'swordfish'`, `baseSet` (2–9 cells), `coverLines: { axis: 'col'|'row', indices: [3] }`.
+- Both fish steps carry `eliminations` AND `eliminated` as the same array reference. The `eliminated` alias is required because `finishNow()` in `visualizer.js` reads `step.eliminated.length` to accumulate `eliminationCount`.
+- Visual highlights: `.fish-base` (amber border + background on corner cells) and `.fish-cover` (subtle amber stripe on covered columns/rows). Base cells receive `fish-base` only; cover cells that are NOT base cells receive `fish-cover` only.
+- Algorithm key: `'human-v3'` registered in `TRACE_BUILDERS`, `ALGORITHM_LABELS`, all stat label/value methods, `subtitleText()`, and `algorithmBadgeLabel()`.
+- SW cache bumped to `sudoku-v34`; asset query strings bumped to `?v=20260526-humanv3`.
