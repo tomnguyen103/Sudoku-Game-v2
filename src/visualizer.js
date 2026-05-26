@@ -209,7 +209,11 @@
         }
 
         if (trace.solved && trace.solvedBoard) {
-          const remainingStepCount = Math.max(trace.steps.length - Math.min(completedStepCount, trace.steps.length), 0);
+          // SA is non-deterministic: the retraced step count is unrelated to the
+          // original, so projecting remaining animation time would be meaningless.
+          const remainingStepCount = this.selectedAlgorithm === 'sa'
+            ? 0
+            : Math.max(trace.steps.length - Math.min(completedStepCount, trace.steps.length), 0);
           this._stopTimer();
           this._elapsedMs += remainingStepCount * this.playbackDelay();
           this.board = trace.solvedBoard.map(row => [...row]);

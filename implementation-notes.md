@@ -431,6 +431,16 @@ The trace function copies the input board before solving so it does not mutate t
 - Algorithm key: `'human-v3'` registered in `TRACE_BUILDERS`, `ALGORITHM_LABELS`, all stat label/value methods, `subtitleText()`, and `algorithmBadgeLabel()`.
 - SW cache bumped to `sudoku-v34`; asset query strings bumped to `?v=20260526-humanv3`.
 
+### 2026-05-26 — SA `finishNow()` Solving Time fix
+
+**Bug found:** `finishNow()` recomputes the trace from scratch before projecting remaining animation time. For SA (non-deterministic), the new trace has a completely different step count, so `(newSteps.length - completedStepCount) * playbackDelay` would add an arbitrary amount to Solving Time — e.g. a 197-step pause followed by a 2394-step retrace would inflate the stat by ~220 seconds at default speed.
+
+**Decision — Zero projection for SA:** Added a `selectedAlgorithm === 'sa'` guard so `remainingStepCount` is always `0` for SA. Solving Time is left at whatever was accumulated during real playback before Finish Now was clicked. Deterministic algorithms are unaffected.
+
+**Cache update:** Bumped service worker cache from `sudoku-v35` to `sudoku-v36`. Updated `visualizer.js` query string from `?v=20260526-sa` to `?v=20260526-safix`.
+
+---
+
 ### 2026-05-26 — Simulated Annealing algorithm
 
 - **Decision — Approach:** `createSimulatedAnnealingTrace` added to `src/solver.js` following the existing UMD module pattern. No new files created.
