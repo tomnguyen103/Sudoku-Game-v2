@@ -50,7 +50,7 @@ The app can also be opened from an existing local static server. Avoid opening `
 
 1. Choose `Easy`, `Medium`, or `Hard`.
 2. Review the generated starting layout.
-3. Choose the algorithm: `Backtracking DFS`, `Backtracking + MRV`, `Constraint Propagation`, `Human Logic Solver`, or `Human Logic Solver v2`.
+3. Choose the algorithm: `Backtracking DFS`, `Backtracking + MRV`, `Constraint Propagation`, `Human Logic Solver`, `Human Logic Solver v2`, or `Human Logic Solver v3`.
 4. Choose playback speed: `1x`, `2x`, `5x`, or `10x`.
 5. Click `Run Algorithm` to animate the trace.
 6. Use `Pause`, `Finish Now`, `Reset`, or `New Puzzle` as needed.
@@ -93,7 +93,7 @@ Generation starts from a complete solved board, shuffles it, removes clues, and 
 
 ## Solving Algorithms
 
-The app ships with five selectable algorithms. The backtracking variants share the same validity rules and `place` / `backtrack` step vocabulary. Constraint Propagation and the Human Logic modes use candidate snapshots so the visualizer can show pencil marks shrinking as deductions happen.
+The app ships with six selectable algorithms. The backtracking variants share the same validity rules and `place` / `backtrack` step vocabulary. Constraint Propagation and the Human Logic modes use candidate snapshots so the visualizer can show pencil marks shrinking as deductions happen.
 
 The UI does not mutate the DOM live, one step at a time. Each algorithm first produces a complete, deterministic trace of placements and backtracks, and the visualizer replays that trace at the selected speed. This keeps pause, reset, finish-now, and testing behavior predictable.
 
@@ -117,9 +117,13 @@ The Human Logic Solver applies named Sudoku techniques instead of guessing. It s
 
 Human Logic Solver v2 keeps the original human mode intact and adds intermediate techniques: hidden pairs, pointing pairs/triples, and box-line reduction. These strategies still avoid guessing, but they can remove candidates by reasoning about how rows, columns, and boxes constrain each other. The mode remains explainable and can still stop when it needs techniques beyond the current set.
 
+### Human Logic Solver v3
+
+Human Logic Solver v3 extends v2 with fish elimination techniques: **X-Wing** and **Swordfish**. X-Wing applies when a candidate digit appears in exactly two cells in each of two rows, and those two cells share the same two columns — the digit can be eliminated from every other cell in those columns. Swordfish generalises the pattern to three rows and three columns. These eliminations are invisible to the single-row or single-box rules of earlier modes but follow strict logical necessity, never guessing. Like all human-logic modes, v3 stops rather than guesses when its technique set is exhausted.
+
 ## Algorithm Comparison
 
-The app currently implements algorithms #1, #2, #3, and two versions of #6 below. The table compares them with other algorithms that can solve a 9x9 Sudoku, as a reference for possible future additions. Because this app is a *visualizer*, an algorithm's value here depends not only on speed but on whether its steps produce a watchable cell-by-cell trace.
+The app currently implements algorithms #1, #2, #3, and three versions of #6 below. The table compares them with other algorithms that can solve a 9x9 Sudoku, as a reference for possible future additions. Because this app is a *visualizer*, an algorithm's value here depends not only on speed but on whether its steps produce a watchable cell-by-cell trace.
 
 | # | Name | Description | Method | Time complexity | Solving time (typical 9x9) | Difficulty rank (easy to hard) |
 |---|------|-------------|--------|-----------------|----------------------------|---------------------------------|
@@ -128,7 +132,7 @@ The app currently implements algorithms #1, #2, #3, and two versions of #6 below
 | 3 | **Constraint propagation + search** (Norvig) *(current)* | Eliminate candidates (naked/hidden singles) until stuck, then MRV search | AC-3-style propagation + DFS | Near-linear on easy, low-poly on hard | sub-ms to low ms | Easy: solved by propagation alone - Hard: fast |
 | 4 | **Dancing Links / DLX** (Algorithm X) | Model as exact-cover matrix; cover/uncover columns via linked lists | Knuth's Algorithm X | Exponential worst case, extremely fast in practice | microseconds to ms | Uniformly very fast at all difficulties |
 | 5 | **SAT solver** | Encode rules as boolean CNF, hand to a SAT engine | Reduction + DPLL/CDCL | NP-complete; solver-dependent | ms (incl. encoding overhead) | Uniformly fast; overkill for 9x9 |
-| 6 | **Human logic strategies** *(current)* | Apply named techniques: singles, pairs, pointing, and box-line rules | Rule-based deduction | Polynomial per pass | ms, but cannot finish puzzles needing guessing | Easy: often solves or progresses - Hard: can stall without fallback |
+| 6 | **Human logic strategies** *(current)* | Apply named techniques: singles, pairs, pointing, box-line, X-Wing, and Swordfish | Rule-based deduction | Polynomial per pass | ms, but cannot finish puzzles needing guessing | Easy: often solves or progresses - Hard: can stall without fallback |
 | 7 | **Simulated annealing / genetic** | Random fill, swap cells to minimize conflicts | Stochastic optimization | No guarantee; probabilistic | seconds; may not converge | Inconsistent; worse on hard, can fail |
 
 ### Why these three are implemented
@@ -141,7 +145,7 @@ Backtracking DFS (#1) is the project's original baseline. Backtracking + MRV (#2
 
 Constraint Propagation (#3) was added because it is visually distinct from the two backtracking variants: instead of filling one cell at a time, it shows each empty cell's candidate set (pencil marks) shrinking and rippling as naked and hidden singles propagate, then falls back to a fail-first search only when propagation stalls. This required a new render path and new step vocabulary (`propagate`, `guess`, `contradiction`), but it makes the deduction process — not just the search — watchable.
 
-Human Logic (#6) was added next because it turns candidate changes into named, teachable deductions. The original mode stays intentionally small: naked singles, hidden singles, and naked pairs. Human Logic v2 adds hidden pairs, pointing pairs/triples, and box-line reduction while still avoiding guessing. X-wing remains a good future advanced strategy.
+Human Logic (#6) was added next because it turns candidate changes into named, teachable deductions. The original mode stays intentionally small: naked singles, hidden singles, and naked pairs. Human Logic v2 adds hidden pairs, pointing pairs/triples, and box-line reduction while still avoiding guessing. Human Logic v3 extends that with fish elimination techniques — X-Wing and Swordfish — which reason across two or three rows and columns simultaneously to eliminate candidates that single-unit rules cannot reach.
 
 The faster algorithms (DLX, SAT) remain future candidates rather than current features because their internal steps — column covering, clause propagation — do not map cleanly onto a 9x9 grid animation, so they would be opaque to watch.
 
