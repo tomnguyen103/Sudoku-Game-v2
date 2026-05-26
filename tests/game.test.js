@@ -384,6 +384,23 @@ for (const xs of xwingSteps) {
 }
 console.log(`X-Wing shape assertions passed (${xwingSteps.length} x-wing steps found on unsolved board).`);
 
+// Swordfish shape assertions
+const sfSteps = v3trace.steps.filter(s =>
+  s.type === 'human-eliminate' && s.strategy === 'swordfish'
+);
+for (const sf of sfSteps) {
+  assert.ok(Array.isArray(sf.baseSet), 'swordfish step.baseSet is array');
+  assert.ok(sf.baseSet.length >= 2 && sf.baseSet.length <= 9, 'swordfish baseSet is 2–9 cells');
+  assert.ok(sf.coverLines && Array.isArray(sf.coverLines.indices), 'swordfish step.coverLines.indices is array');
+  assert.strictEqual(sf.coverLines.indices.length, 3, 'swordfish coverLines has 3 indices');
+  assert.ok(['row','col'].includes(sf.coverLines.axis), 'swordfish coverLines.axis is row or col');
+  assert.ok(Array.isArray(sf.eliminations) && sf.eliminations.length > 0, 'swordfish has eliminations');
+  assert.strictEqual(sf.eliminated, sf.eliminations, 'swordfish eliminated is same reference as eliminations');
+  assert.ok(typeof sf.digit === 'number', 'swordfish step has digit field');
+  assert.ok(Array.isArray(sf.snapshot) && sf.snapshot.length === 9, 'swordfish step has 9-row snapshot');
+}
+console.log(`Swordfish shape assertions passed (${sfSteps.length} swordfish steps found on unsolved board).`);
+
 // visualizer test puzzle tests
 const expectedEmptyRanges = {
   easy: [30, 40],

@@ -620,6 +620,130 @@
       return false;
     }
 
+    function applySwordfish() {
+      // Row direction: base rows, cover columns
+      for (let d = 1; d <= 9; d++) {
+        for (let r1 = 0; r1 < 7; r1++) {
+          const cols1 = [];
+          for (let c = 0; c < 9; c++) {
+            const i = r1 * 9 + c;
+            if ((cands[i] & BIT(d)) && popcount(cands[i]) > 1) cols1.push(c);
+          }
+          if (cols1.length < 2 || cols1.length > 3) continue;
+          for (let r2 = r1 + 1; r2 < 8; r2++) {
+            const cols2 = [];
+            for (let c = 0; c < 9; c++) {
+              const i = r2 * 9 + c;
+              if ((cands[i] & BIT(d)) && popcount(cands[i]) > 1) cols2.push(c);
+            }
+            if (cols2.length < 2 || cols2.length > 3) continue;
+            for (let r3 = r2 + 1; r3 < 9; r3++) {
+              const cols3 = [];
+              for (let c = 0; c < 9; c++) {
+                const i = r3 * 9 + c;
+                if ((cands[i] & BIT(d)) && popcount(cands[i]) > 1) cols3.push(c);
+              }
+              if (cols3.length < 2 || cols3.length > 3) continue;
+              const union = [...new Set([...cols1, ...cols2, ...cols3])].sort((a, b) => a - b);
+              if (union.length !== 3) continue;
+              const baseSet = [];
+              for (const r of [r1, r2, r3]) {
+                for (const c of union) {
+                  const i = r * 9 + c;
+                  if (cands[i] & BIT(d)) baseSet.push([r, c]);
+                }
+              }
+              const eliminations = [];
+              for (let r = 0; r < 9; r++) {
+                if (r === r1 || r === r2 || r === r3) continue;
+                for (const c of union) {
+                  const i = r * 9 + c;
+                  if ((cands[i] & BIT(d)) && popcount(cands[i]) > 1) {
+                    cands[i] &= ~BIT(d);
+                    eliminations.push({ row: r, col: c, value: d });
+                  }
+                }
+              }
+              if (eliminations.length) {
+                steps.push({
+                  type: 'human-eliminate',
+                  strategy: 'swordfish',
+                  digit: d,
+                  baseSet,
+                  coverLines: { axis: 'col', indices: union },
+                  eliminations,
+                  eliminated: eliminations,
+                  snapshot: toSnapshot(),
+                });
+                return true;
+              }
+            }
+          }
+        }
+      }
+      // Column direction: base columns, cover rows
+      for (let d = 1; d <= 9; d++) {
+        for (let c1 = 0; c1 < 7; c1++) {
+          const rows1 = [];
+          for (let r = 0; r < 9; r++) {
+            const i = r * 9 + c1;
+            if ((cands[i] & BIT(d)) && popcount(cands[i]) > 1) rows1.push(r);
+          }
+          if (rows1.length < 2 || rows1.length > 3) continue;
+          for (let c2 = c1 + 1; c2 < 8; c2++) {
+            const rows2 = [];
+            for (let r = 0; r < 9; r++) {
+              const i = r * 9 + c2;
+              if ((cands[i] & BIT(d)) && popcount(cands[i]) > 1) rows2.push(r);
+            }
+            if (rows2.length < 2 || rows2.length > 3) continue;
+            for (let c3 = c2 + 1; c3 < 9; c3++) {
+              const rows3 = [];
+              for (let r = 0; r < 9; r++) {
+                const i = r * 9 + c3;
+                if ((cands[i] & BIT(d)) && popcount(cands[i]) > 1) rows3.push(r);
+              }
+              if (rows3.length < 2 || rows3.length > 3) continue;
+              const union = [...new Set([...rows1, ...rows2, ...rows3])].sort((a, b) => a - b);
+              if (union.length !== 3) continue;
+              const baseSet = [];
+              for (const c of [c1, c2, c3]) {
+                for (const r of union) {
+                  const i = r * 9 + c;
+                  if (cands[i] & BIT(d)) baseSet.push([r, c]);
+                }
+              }
+              const eliminations = [];
+              for (let c = 0; c < 9; c++) {
+                if (c === c1 || c === c2 || c === c3) continue;
+                for (const r of union) {
+                  const i = r * 9 + c;
+                  if ((cands[i] & BIT(d)) && popcount(cands[i]) > 1) {
+                    cands[i] &= ~BIT(d);
+                    eliminations.push({ row: r, col: c, value: d });
+                  }
+                }
+              }
+              if (eliminations.length) {
+                steps.push({
+                  type: 'human-eliminate',
+                  strategy: 'swordfish',
+                  digit: d,
+                  baseSet,
+                  coverLines: { axis: 'row', indices: union },
+                  eliminations,
+                  eliminated: eliminations,
+                  snapshot: toSnapshot(),
+                });
+                return true;
+              }
+            }
+          }
+        }
+      }
+      return false;
+    }
+
     function applyNakedPair() {
       for (const unit of UNIT_GROUPS) {
         const pairs = new Map();
@@ -665,7 +789,7 @@
         applyHiddenSingle() ||
         applyNakedPair() ||
         (options.v2 && (applyHiddenPair() || applyPointingPairTriple() || applyBoxLineReduction())) ||
-        (options.v3 && applyXWing());
+        (options.v3 && (applyXWing() || applySwordfish()));
       if (cands.some(mask => mask === 0)) return { solved: false, steps, solvedBoard: null };
     }
 
