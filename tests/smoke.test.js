@@ -178,6 +178,13 @@ async function main() {
       await page.getByRole('button', { name: 'Pause' }).click();
       await page.getByText('Solver paused.').waitFor();
 
+      await page.selectOption('select.algo-select', 'human-v3');
+      await page.getByText('Select an algorithm and run the solver.').waitFor();
+      await page.getByRole('button', { name: 'Run Algorithm' }).click();
+      await page.locator('p').filter({ hasText: /Naked Single|Hidden Single|Naked Pair|Hidden Pair|Pointing Pair\/Triple|Box-Line Reduction|x-wing|swordfish/ }).waitFor();
+      await page.getByRole('button', { name: 'Pause' }).click();
+      await page.getByText('Solver paused.').waitFor();
+
       assert.deepStrictEqual(errors, [], 'browser console has no errors');
     } finally {
       await browser.close();
