@@ -736,3 +736,7 @@ assert.strictEqual(replayGame._elapsedMs, 0, 'runSolver from solved: resets visu
 assert.strictEqual(replayGame._computeDurationMs, 2.25, 'runSolver from solved: replaces measured compute time');
 
 console.log('All solving-time lifecycle tests passed.');
+
+// human logic v3 — import guard
+const { createHumanLogicV3Trace } = require('../game.js');
+assert.strictEqual(typeof createHumanLogicV3Trace, 'function', 'createHumanLogicV3Trace is exported');

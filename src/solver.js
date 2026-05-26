@@ -337,6 +337,10 @@
     return createHumanLogicTraceWithStrategies(board, { v2: true });
   }
 
+  function createHumanLogicV3Trace(board) {
+    return createHumanLogicTraceWithStrategies(board, { v2: true, v3: true });
+  }
+
   function createHumanLogicTraceWithStrategies(board, options) {
     if (!hasValidGivens(board)) {
       return { solved: false, steps: [], solvedBoard: null };
@@ -619,6 +623,7 @@
     createConstraintPropagationTrace,
     createHumanLogicTrace,
     createHumanLogicV2Trace,
+    createHumanLogicV3Trace,
     countSolutions,
   };
 });
