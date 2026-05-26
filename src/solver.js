@@ -906,7 +906,15 @@
 
     if (swappableBoxes.length === 0) {
       const solved = countConflicts(board) === 0;
-      return { solved, steps: [], solvedBoard: solved ? board.map(r => [...r]) : null };
+      if (solved) {
+        steps.push({
+          type: 'sa-fill',
+          attempt: 1,
+          board: board.map(r => [...r]),
+          conflicts: 0,
+        });
+      }
+      return { solved, steps, solvedBoard: solved ? board.map(r => [...r]) : null };
     }
 
     let working = boxCompleteFill(board);
