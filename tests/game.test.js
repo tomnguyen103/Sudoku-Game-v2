@@ -384,6 +384,57 @@ for (const xs of xwingSteps) {
 }
 console.log(`X-Wing shape assertions passed (${xwingSteps.length} x-wing steps found on unsolved board).`);
 
+// Concrete X-Wing test: verified puzzle where X-Wing on digit 7 fires at rows 4,6 / cols 1,3
+const xwingPuzzle = [
+  [0,0,0,1,3,0,0,0,6],
+  [0,0,0,0,0,0,2,0,5],
+  [0,1,4,2,0,0,0,0,0],
+  [0,4,0,5,0,0,0,9,0],
+  [0,0,9,0,4,8,0,5,0],
+  [5,0,0,0,0,0,0,7,4],
+  [9,0,0,0,5,0,4,3,0],
+  [3,5,2,8,0,0,0,0,1],
+  [0,8,0,0,0,0,5,0,0],
+];
+const xwingFixtureTrace = createHumanLogicV3Trace(xwingPuzzle);
+const xwingFixtureStep = xwingFixtureTrace.steps.find(s =>
+  s.type === 'human-eliminate' && s.strategy === 'x-wing'
+);
+assert.ok(xwingFixtureStep, 'x-wing fires on the verified xwing fixture puzzle');
+assert.strictEqual(xwingFixtureStep.digit, 7, 'x-wing fixture: digit is 7');
+assert.deepStrictEqual(
+  xwingFixtureStep.baseSet,
+  [[4,1],[4,3],[6,1],[6,3]],
+  'x-wing fixture: baseSet is rows 4,6 / cols 1,3'
+);
+assert.deepStrictEqual(
+  xwingFixtureStep.coverLines,
+  { axis: 'col', indices: [1, 3] },
+  'x-wing fixture: coverLines axis col, indices [1,3]'
+);
+assert.ok(
+  xwingFixtureStep.eliminations.length > 0,
+  'x-wing fixture: has at least one elimination'
+);
+assert.ok(
+  xwingFixtureStep.eliminations.every(e => e.value === 7),
+  'x-wing fixture: all eliminations target digit 7'
+);
+assert.ok(
+  xwingFixtureStep.eliminations.every(e => [1, 3].includes(e.col)),
+  'x-wing fixture: all eliminations are in cover columns 1 and 3'
+);
+assert.ok(
+  xwingFixtureStep.eliminations.every(e => e.row !== 4 && e.row !== 6),
+  'x-wing fixture: no eliminations in base rows 4 and 6'
+);
+assert.strictEqual(
+  xwingFixtureStep.eliminated,
+  xwingFixtureStep.eliminations,
+  'x-wing fixture: eliminated is same reference as eliminations'
+);
+console.log('X-Wing fixture test passed.');
+
 // Swordfish shape assertions
 const sfSteps = v3trace.steps.filter(s =>
   s.type === 'human-eliminate' && s.strategy === 'swordfish'
@@ -400,6 +451,52 @@ for (const sf of sfSteps) {
   assert.ok(Array.isArray(sf.snapshot) && sf.snapshot.length === 9, 'swordfish step has 9-row snapshot');
 }
 console.log(`Swordfish shape assertions passed (${sfSteps.length} swordfish steps found on unsolved board).`);
+
+// Concrete Swordfish test: verified puzzle where Swordfish on digit 3 fires
+const swordfishPuzzle = [
+  [0,1,0,0,6,3,0,0,0],
+  [2,4,0,0,0,8,7,0,0],
+  [0,0,0,4,0,0,0,1,0],
+  [7,9,0,2,0,0,0,5,0],
+  [0,0,0,0,7,4,6,0,2],
+  [0,2,0,8,9,0,0,3,7],
+  [0,0,0,5,0,0,4,0,0],
+  [0,3,0,0,0,0,9,0,0],
+  [8,7,0,0,0,0,0,2,0],
+];
+const sfFixtureTrace = createHumanLogicV3Trace(swordfishPuzzle);
+const sfFixtureStep = sfFixtureTrace.steps.find(s =>
+  s.type === 'human-eliminate' && s.strategy === 'swordfish'
+);
+assert.ok(sfFixtureStep, 'swordfish fires on the verified swordfish fixture puzzle');
+assert.strictEqual(sfFixtureStep.digit, 3, 'swordfish fixture: digit is 3');
+assert.deepStrictEqual(
+  sfFixtureStep.coverLines,
+  { axis: 'col', indices: [2, 4, 8] },
+  'swordfish fixture: coverLines axis col, indices [2,4,8]'
+);
+assert.ok(
+  sfFixtureStep.baseSet.length >= 2 && sfFixtureStep.baseSet.length <= 9,
+  'swordfish fixture: baseSet has 2–9 cells'
+);
+assert.ok(
+  sfFixtureStep.eliminations.length > 0,
+  'swordfish fixture: has at least one elimination'
+);
+assert.ok(
+  sfFixtureStep.eliminations.every(e => e.value === 3),
+  'swordfish fixture: all eliminations target digit 3'
+);
+assert.ok(
+  sfFixtureStep.eliminations.every(e => [2, 4, 8].includes(e.col)),
+  'swordfish fixture: all eliminations are in cover columns 2, 4, 8'
+);
+assert.strictEqual(
+  sfFixtureStep.eliminated,
+  sfFixtureStep.eliminations,
+  'swordfish fixture: eliminated is same reference as eliminations'
+);
+console.log('Swordfish fixture test passed.');
 
 // visualizer test puzzle tests
 const expectedEmptyRanges = {
