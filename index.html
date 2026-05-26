@@ -20,15 +20,15 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Sudoku">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <script src="vendor/tailwindcss.js?v=20260526-humanv3"></script>
+  <script src="vendor/tailwindcss.js?v=20260526-sa"></script>
   <script>
     tailwind.config = { darkMode: 'class' };
   </script>
-  <script defer src="vendor/alpine.min.js?v=20260526-humanv3"></script>
-  <link rel="stylesheet" href="style.css?v=20260526-humanv3">
-  <script src="src/solver.js?v=20260526-humanv3"></script>
-  <script src="src/generator.js?v=20260526-humanv3"></script>
-  <script src="src/visualizer.js?v=20260526-humanv3"></script>
+  <script defer src="vendor/alpine.min.js?v=20260526-sa"></script>
+  <link rel="stylesheet" href="style.css?v=20260526-sa">
+  <script src="src/solver.js?v=20260526-sa"></script>
+  <script src="src/generator.js?v=20260526-sa"></script>
+  <script src="src/visualizer.js?v=20260526-sa"></script>
 </head>
 <body
   class="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-200 px-3 py-4 sm:p-5"
@@ -72,6 +72,7 @@
             'finish-flash': finishFlash && cellKind(cell.row, cell.col) !== 'given',
             'fish-base': isFishBaseCell(cell.row, cell.col),
             'fish-cover': isFishCoverLine(cell.row, cell.col),
+            'bg-amber-200 dark:bg-amber-700/60': isSaSwapCell(cell.row, cell.col),
           }"
         >
           <template x-if="cell.value">
@@ -120,6 +121,7 @@
           <option value="human">⬡ Human Logic Solver</option>
           <option value="human-v2">⬡ Human Logic Solver v2</option>
           <option value="human-v3">⬡ Human Logic Solver v3</option>
+          <option value="sa">⬡ Simulated Annealing</option>
         </select>
         <button
           @click="runSolver()"
