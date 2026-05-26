@@ -170,6 +170,25 @@
         this.traceSolved = trace.solved;
         this._computeDurationMs = durationMs;
 
+        // Accumulate counts for all remaining steps in the trace
+        for (let i = this.stepIndex; i < this.steps.length; i++) {
+          const step = this.steps[i];
+          if (step.type === 'place') {
+            this.placedCount++;
+          } else if (step.type === 'backtrack') {
+            this.backtrackedCount++;
+          } else if (step.type === 'propagate') {
+            this.eliminationCount += step.eliminated.length;
+          } else if (step.type === 'guess') {
+            this.guessCount++;
+          } else if (step.type === 'human-place') {
+            this.placedCount++;
+            this.eliminationCount += step.eliminated.length;
+          } else if (step.type === 'human-eliminate') {
+            this.eliminationCount += step.eliminated.length;
+          }
+        }
+
         if (trace.solved && trace.solvedBoard) {
           const remainingStepCount = Math.max(trace.steps.length - Math.min(completedStepCount, trace.steps.length), 0);
           this._stopTimer();

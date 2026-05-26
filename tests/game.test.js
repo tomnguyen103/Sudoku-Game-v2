@@ -387,6 +387,7 @@ finishGame.locked = Array.from({ length: 9 }, () => Array(9).fill(false));
 finishGame.status = 'running';
 finishGame.steps = [{ type: 'place', row: 0, col: 2, value: 4 }];
 finishGame.stepIndex = 1;
+finishGame.placedCount = 1;
 finishGame._interval = setInterval(() => {}, 1000);
 finishGame.finishNow();
 assert.strictEqual(finishGame.status, 'solved', 'finishNow marks the visualizer solved');
@@ -394,6 +395,11 @@ assert.strictEqual(finishGame._interval, null, 'finishNow stops playback');
 assert.deepStrictEqual(finishGame.board[0], [5,3,4,6,7,8,9,1,2], 'finishNow fills the solved board');
 assert.deepStrictEqual(finishGame.solvedBoard[0], [5,3,4,6,7,8,9,1,2], 'finishNow stores the solved board');
 assert.strictEqual(finishGame.stepIndex, finishGame.steps.length, 'finishNow advances to the end of the trace');
+const expectedTrace = createBacktrackingTrace(unsolved);
+const expectedPlaces = expectedTrace.steps.filter(s => s.type === 'place').length;
+const expectedBacktracks = expectedTrace.steps.filter(s => s.type === 'backtrack').length;
+assert.strictEqual(finishGame.placedCount, expectedPlaces, 'finishNow sets correct final placedCount');
+assert.strictEqual(finishGame.backtrackedCount, expectedBacktracks, 'finishNow sets correct final backtrackedCount');
 
 console.log('All visualizer finish-now tests passed.');
 

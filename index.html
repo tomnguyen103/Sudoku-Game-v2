@@ -6,21 +6,29 @@
   <title>Sudoku Solver Visualizer</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="icon" href="icons/icon-192.png" type="image/png">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sudoku Solver Visualizer</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#2563eb">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Sudoku">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <script src="vendor/tailwindcss.js?v=20260525-computetime"></script>
+  <script src="vendor/tailwindcss.js?v=20260525-finishexc"></script>
   <script>
     tailwind.config = { darkMode: 'class' };
   </script>
-  <script defer src="vendor/alpine.min.js?v=20260525-computetime"></script>
-  <link rel="stylesheet" href="style.css?v=20260525-computetime">
-  <script src="src/solver.js?v=20260525-computetime"></script>
-  <script src="src/generator.js?v=20260525-computetime"></script>
-  <script src="src/visualizer.js?v=20260525-computetime"></script>
+  <script defer src="vendor/alpine.min.js?v=20260525-finishexc"></script>
+  <link rel="stylesheet" href="style.css?v=20260525-finishexc">
+  <script src="src/solver.js?v=20260525-finishexc"></script>
+  <script src="src/generator.js?v=20260525-finishexc"></script>
+  <script src="src/visualizer.js?v=20260525-finishexc"></script>
 </head>
 <body
   class="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-200 px-3 py-4 sm:p-5"
@@ -78,7 +86,7 @@
       </template>
     </div>
 
-    <aside class="w-full max-w-[31rem] lg:w-72 flex flex-col gap-3">
+    <aside class="w-full max-w-[31rem] lg:w-[21.5rem] lg:h-[40.375rem] flex flex-col gap-3">
       <section class="difficulty-panel bg-white dark:bg-slate-800 rounded-lg p-3 shadow-sm ring-1 ring-slate-200/70 dark:ring-slate-700/70">
         <div class="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Difficulty</div>
         <div class="grid grid-cols-3 gap-1.5">
@@ -154,12 +162,12 @@
         </div>
       </section>
 
-      <section class="status-panel bg-white dark:bg-slate-800 rounded-lg p-3 shadow-sm ring-1 ring-slate-200/70 dark:ring-slate-700/70">
+      <section class="status-panel bg-white dark:bg-slate-800 rounded-lg p-3 shadow-sm ring-1 ring-slate-200/70 dark:ring-slate-700/70 lg:flex-1 lg:flex lg:flex-col lg:justify-between">
         <div class="status-header">
           <div class="text-xs text-slate-400 dark:text-slate-500 uppercase tracking-wider">Status</div>
           <span class="algo-badge" x-text="algorithmBadgeLabel()"></span>
         </div>
-        <div class="grid grid-cols-2 gap-2 mb-2">
+        <div class="grid grid-cols-4 gap-1.5 mb-2">
           <div class="stat-place">
             <div class="stat-label" x-text="statLabelPrimary()"></div>
             <div class="stat-value" x-text="statValuePrimary()"></div>
@@ -168,20 +176,17 @@
             <div class="stat-label" x-text="statLabelSecondary()"></div>
             <div class="stat-value" x-text="statValueSecondary()"></div>
           </div>
-        </div>
-        <div class="stat-time mt-2">
-          <div class="stat-label">⏱ Solving Time</div>
-          <div class="stat-value" x-text="elapsedText()"></div>
-        </div>
-        <div class="stat-time mt-2">
-          <div class="stat-label">⏱ Compute Time</div>
-          <div class="stat-value" x-text="computeText()"></div>
+          <div class="stat-time">
+            <div class="stat-label">⏱ Solving Time</div>
+            <div class="stat-value" x-text="elapsedText()"></div>
+          </div>
+          <div class="stat-time">
+            <div class="stat-label">⏱ Compute Time</div>
+            <div class="stat-value" x-text="computeText()"></div>
+          </div>
         </div>
         <p class="text-xs text-center text-slate-500 dark:text-slate-400" x-text="statusText()"></p>
       </section>
-    </aside>
-  </main>
-
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {

@@ -396,3 +396,27 @@ The trace function copies the input board before solving so it does not mutate t
 **Decision - Finish Now behavior:** `Finish Now` keeps the previous visual semantics: it stops playback, adds the remaining trace length multiplied by the current playback delay to `Solving Time`, advances to the end, and marks the run solved or stuck. It also recomputes the trace and records the current algorithm's measured `Compute Time`.
 
 **Testing:** Updated visualizer lifecycle tests for both clocks and updated the browser smoke test to assert `Solving Time` freezes on pause, `Compute Time` stays stable while paused, and both labels appear in the status card.
+
+### 2026-05-25 — Compact 1-Row Status Cards and Desktop Alignment
+
+**Issue observed:** The status panel UI looked slightly cluttered and less professional. In desktop mode, the four status cards (Primary Stat, Secondary Stat, Solving Time, and Compute Time) were stacked across multiple vertical rows, making the panel extremely tall. In mobile mode, the cards were displayed in a 3-column grid layout, causing the 4th card ("Compute Time") to wrap asymmetrically and create visual gaps. Additionally, the sidebar was shorter than the puzzle board, leaving empty space at the bottom in desktop mode.
+
+**Decision — 1-Row Status Cards:** Aligned all 4 status cards in a single row of 4 columns across both desktop and mobile modes by placing them inside a single `grid grid-cols-4 gap-1.5` container in `index.html`.
+
+**Decision — Smaller Cards for Seamless Fit:** Reduced card padding (`0.4rem 0.25rem` on desktop and `0.3rem 0.25rem` on mobile) and font sizes (`0.55rem` label / `0.875rem` value on desktop, and `0.5rem` label / `0.8125rem` value on mobile) to make sure they fit perfectly in the columns without overflowing or breaking the layout. Removed the obsolete 3-column mobile grid overrides for `.status-panel` in `style.css` so both viewports follow the clean grid layout. Increased the sidebar's desktop width to `21.5rem` (344px) in `index.html` so that the cards have plenty of horizontal room on large screens, ensuring clean, legible text that matches mobile readability.
+
+**Decision — Pixel-Perfect Label and Value Alignment:** Set a fixed height on `.stat-label` (`1.75rem` on desktop and `1.5rem` on mobile) and styled it as a flex container (`display: flex; align-items: center; justify-content: center; text-align: center;`). This ensures that regardless of whether the labels wrap into one line (like "✦ Placed") or two lines (like "⏱ Solving Time"), every label occupies the exact same vertical space and aligns centered, and the value numbers below them start at the exact same vertical offset, aligning all descriptions and numbers perfectly along a single horizontal axis.
+
+**Decision — Height Alignment on Desktop:** Set the sidebar `<aside>` height to `lg:h-[40.375rem]`, which exactly matches the desktop board height (`40.375rem`). Applied `lg:flex-1 lg:flex lg:flex-col lg:justify-between` to the `status-panel` so it automatically expands to fill the remaining vertical height, spacing the header, cards, and description text out beautifully and framing the board on the right perfectly.
+
+**Cache update:** Bumped service worker cache from `sudoku-v29` to `sudoku-v32`. Updated the runtime query strings in `index.html` from `?v=20260525-computetime` to `?v=20260525-uidesktop`.
+
+### 2026-05-25 — Direct "Finish Now" Stat Counter Sync
+
+**Bug found:** If a user clicks `Finish Now` directly from the `ready` state (or mid-solve) without letting the visualizer animate step-by-step, the primary and secondary counters (Placed, Backtracks, Eliminations, Guesses, Deductions) remained at `0` (or froze at their paused values) because they only incremented during the step-by-step playback loop (`_applyNextStep()`).
+
+**Decision — Counter Accumulation on Skip:** Updated `finishNow()` in `src/visualizer.js` to iterate over all remaining steps in the trace (from the current `stepIndex` to the end of the trace) and accumulate the appropriate values to `placedCount`, `backtrackedCount`, `eliminationCount`, and `guessCount` immediately before completing the solve. This ensures that the counters correctly reflect the final counts of the complete trace.
+
+**Cache update:** Bumped service worker cache from `sudoku-v32` to `sudoku-v33`. Updated all query string versions in `index.html` from `?v=20260525-uidesktop` to `?v=20260525-finishexc`.
+
+**Testing:** Updated visualizer unit tests in `tests/game.test.js` to assert that `placedCount` and `backtrackedCount` match the expected complete trace count after `finishNow()` is executed. Both `npm test` and `npm run test:smoke` pass successfully.

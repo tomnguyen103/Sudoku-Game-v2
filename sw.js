@@ -1,6 +1,6 @@
 // Bump CACHE name on every deploy that changes any asset below.
 // Also bump query strings in index.html script/link tags to match.
-const CACHE = 'sudoku-v29';
+const CACHE = 'sudoku-v33';
 const ASSETS = [
   '/',
   '/index.html',
